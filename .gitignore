@@ -1,0 +1,78 @@
+# ==========================
+# Dependencies
+# ==========================
+node_modules/
+.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+
+# ==========================
+# Build output
+# ==========================
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# ==========================
+# Environment / secrets
+# ==========================
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+!.env.example
+
+# ==========================
+# Logs
+# ==========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==========================
+# Testing / coverage
+# ==========================
+coverage/
+.nyc_output/
+
+# ==========================
+# Editor / OS files
+# ==========================
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ==========================
+# Docker
+# ==========================
+docker-compose.override.yml
+
+# ==========================
+# Package manager locks (optional — see note below)
+# ==========================
+# Uncomment only if you intentionally don't want to commit lockfiles
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ==========================
+# Misc
+# ==========================
+*.pid
+*.seed
+*.pid.lock
+.cache/
+tmp/
+temp/

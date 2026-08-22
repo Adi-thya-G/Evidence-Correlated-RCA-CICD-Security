@@ -16,6 +16,7 @@ Evidence-based correlation and root-cause localization system for multi-tool CI/
   components as high-alert, resolved first
 - **Deliver** — React dashboard, Slack/Email alerts, optional deployment gate
 
+
 ## Tech Stack
 | Layer | Tech |
 |---|---|
@@ -23,5 +24,9 @@ Evidence-based correlation and root-cause localization system for multi-tool CI/
 | Frontend | React, TypeScript |
 | Database | MongoDB |
 | Vector Store | Pinecone / Qdrant / Milvus |
-| Git Interface | simple-git |
+| Security Scanners | SonarQube (SAST), Semgrep (SAST), Trivy (SCA), Gitleaks (Secrets) |
+| Version Control / CI | GitHub, GitHub Actions / Jenkins |
+| Git Interface | simple-git (blame, diff, log) |
+| Data Validation | Zod |
 | LLM | GPT-5 / Llama (via API) |
+| Delivery | Dashboard UI, Slack / Email notifications |

@@ -1,0 +1,156 @@
+version: "3.9"
+
+# Evidence-Correlated RCA — local dev stack
+# Pinned versions everywhere so the environment is reproducible across machines.
+
+services:
+
+  # ---------------------------------------------------------------------
+  # Backend API (Node.js + Express + TypeScript) — fixed Node version
+  # ---------------------------------------------------------------------
+  backend:
+    build:
+      context: ./packages/backend
+      dockerfile: Dockerfile
+    container_name: rca-backend
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./packages/backend/.env
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/evidence-rca
+      - VECTOR_DB_URL=http://qdrant:6333
+      - SONARQUBE_URL=http://sonarqube:9000
+      - TRIVY_SERVER_URL=http://trivy:4954
+    depends_on:
+      - mongo
+      - qdrant
+      - sonarqube
+    volumes:
+      - ./packages/backend/src:/app/src
+      - ./:/repo:ro                # repo mounted read-only for git blame/diff
+    networks:
+      - rca-net
+
+  # ---------------------------------------------------------------------
+  # MongoDB — findings, correlations, results
+  # ---------------------------------------------------------------------
+  mongo:
+    image: mongo:7.0.12
+    container_name: rca-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - rca-net
+
+  # ---------------------------------------------------------------------
+  # Qdrant — open-source vector database (embeddings + Top-K search)
+  # ---------------------------------------------------------------------
+  qdrant:
+    image: qdrant/qdrant:v1.9.2
+    container_name: rca-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"   # REST
+      - "6334:6334"   # gRPC
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks:
+      - rca-net
+
+  # ---------------------------------------------------------------------
+  # SonarQube — SAST (Community Edition) + its required Postgres backend
+  # ---------------------------------------------------------------------
+  sonarqube-db:
+    image: postgres:16.3
+    container_name: rca-sonar-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=sonar
+      - POSTGRES_PASSWORD=sonar
+      - POSTGRES_DB=sonarqube
+    volumes:
+      - sonar-db-data:/var/lib/postgresql/data
+    networks:
+      - rca-net
+
+  sonarqube:
+    image: sonarqube:10.6.0-community
+    container_name: rca-sonarqube
+    restart: unless-stopped
+    depends_on:
+      - sonarqube-db
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://sonarqube-db:5432/sonarqube
+      - SONAR_JDBC_USERNAME=sonar
+      - SONAR_JDBC_PASSWORD=sonar
+    ports:
+      - "9000:9000"
+    volumes:
+      - sonar-data:/opt/sonarqube/data
+      - sonar-extensions:/opt/sonarqube/extensions
+      - sonar-logs:/opt/sonarqube/logs
+    networks:
+      - rca-net
+
+  # ---------------------------------------------------------------------
+  # Trivy — SCA / vulnerability scanner, run as a persistent server
+  # ---------------------------------------------------------------------
+  trivy:
+    image: aquasec/trivy:0.53.0
+    container_name: rca-trivy
+    restart: unless-stopped
+    command: server --listen 0.0.0.0:4954
+    ports:
+      - "4954:4954"
+    volumes:
+      - trivy-cache:/root/.cache/trivy
+    networks:
+      - rca-net
+
+  # ---------------------------------------------------------------------
+  # Semgrep — SAST, run as a one-off scan job (not a long-running server)
+  # Trigger manually: docker compose run --rm semgrep
+  # ---------------------------------------------------------------------
+  semgrep:
+    image: semgrep/semgrep:1.79.0
+    container_name: rca-semgrep
+    profiles: ["scan"]     # excluded from `docker compose up`, run on demand
+    working_dir: /src
+    volumes:
+      - ./:/src:ro
+    command: ["semgrep", "--config=auto", "--json", "--output=/src/scan-results/semgrep.json"]
+    networks:
+      - rca-net
+
+  # ---------------------------------------------------------------------
+  # Gitleaks — secrets scanner, run as a one-off scan job
+  # Trigger manually: docker compose run --rm gitleaks
+  # ---------------------------------------------------------------------
+  gitleaks:
+    image: zricethezav/gitleaks:v8.18.4
+    container_name: rca-gitleaks
+    profiles: ["scan"]     # excluded from `docker compose up`, run on demand
+    working_dir: /repo
+    volumes:
+      - ./:/repo:ro
+      - ./scan-results:/scan-results
+    command: ["detect", "--source=/repo", "--report-format=json", "--report-path=/scan-results/gitleaks.json", "--no-git"]
+    networks:
+      - rca-net
+
+networks:
+  rca-net:
+    driver: bridge
+
+volumes:
+  mongo-data:
+  qdrant-data:
+  sonar-db-data:
+  sonar-data:
+  sonar-extensions:
+  sonar-logs:
+  trivy-cache:
