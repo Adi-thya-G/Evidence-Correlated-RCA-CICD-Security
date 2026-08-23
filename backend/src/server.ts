@@ -1,8 +1,10 @@
 import express from 'express';
-const app=express();
+
+import app from './app';
+
 
 app.get('/',(req: express.Request,res: express.Response)=>{
-res.send('Hello World!')
+res.send('Hello World! how do do')
 })
 
 app.listen(3000,()=>{
