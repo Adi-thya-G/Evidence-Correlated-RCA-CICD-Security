@@ -9,7 +9,7 @@ export const tokenGenerator=async():Promise<string>=>{
     {
     user_id:randomUUID()
     },env.JWT_SECRET,
-    {expiresIn:env.JWT_EXPIRES_IN as SignOptions['expiresIn'],algorithm:"HS384"})
+    {expiresIn:"15m"})
 
     
   } catch (error) {

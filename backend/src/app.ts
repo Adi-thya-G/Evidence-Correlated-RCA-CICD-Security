@@ -4,10 +4,11 @@ import helmet from 'helmet'
 import router from './routes/index.router';
 const app=express();
 
+app.set("trust proxy", 1);
 // .. helmet help node .js and express app setting the 13 important http security header
 // content-security policy and stricty transport securtiy policy
 
-app.use(helmet())
+// app.use(helmet())
 
 // Middleware to parse JSON and URL-encoded data
 app.use(express.json());

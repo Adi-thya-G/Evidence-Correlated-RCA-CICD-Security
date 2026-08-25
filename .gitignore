@@ -2,6 +2,7 @@
 # Dependencies
 # ==========================
 node_modules/
+
 .pnp
 .pnp.js
 .yarn/cache
@@ -58,6 +59,8 @@ Thumbs.db
 # Docker
 # ==========================
 docker-compose.override.yml
+
+*.pem
 
 # ==========================
 # Package manager locks (optional — see note below)
