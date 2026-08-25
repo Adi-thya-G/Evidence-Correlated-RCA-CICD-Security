@@ -4,10 +4,10 @@ import  {verifyToken} from "@middleware/verify"
 
 const router=Router();
 
-router.get('/auth/github',loginWithGithub)
-router.get('/auth/github/callback',callBackUrl)
-router.get("/auth/github/app-callback",app_callback)
-router.get("/auth/logout",verifyToken,logout)
+router.get('/github',loginWithGithub)
+router.get('/github/callback',callBackUrl)
+router.get("/github/app-callback",app_callback)
+router.get("/logout",verifyToken,logout)
 
 // get data for dashboard
 router.get("/auth/me",verifyToken,authMe)
