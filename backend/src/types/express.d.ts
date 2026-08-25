@@ -15,6 +15,7 @@ declare global {
         userId:Types.ObjectId,
         githubId:number
       }
+      ip ?:string
     }
   }
 }
