@@ -1,16 +1,22 @@
 
 
 import './App.css'
-import GithubButton from "../components/GithubButtton"
-import Login from './pages/Login'
+
+import SideNav from '../components/SideNav'
+import Dashboard from './pages/Dashboard'
+
 function App() {
   
 
   return (
-    <>
-   <Login/>
+    
+ <div className='w-full h-screen flex flex-row  overflow-y-hidden'>
+  
+  <SideNav/>
+ <Dashboard/>
+ </div>
       
-    </>
+    
   )
 }
 
