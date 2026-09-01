@@ -24,9 +24,8 @@ export const getInstallationId=async(installationId:number)=>{
     installationId: installationId,
 
   })
-  return auth({ type: "installation" }).then((authResult) =>{
-    return authResult.token
-  })
+ const { token } = await auth({ type: 'installation' })
+ return token
 } 
 
 export const getOrCreateRepoPath = async (
