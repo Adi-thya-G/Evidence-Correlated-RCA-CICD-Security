@@ -30,17 +30,17 @@ export const getInstallationId=async(installationId:number)=>{
 
 export const getOrCreateRepoPath = async (
   installationId: number,
-  repoId: number,
+  repo:any,
 ): Promise<string> => {
   try {
-    const repoPath = await getRepoPath(installationId, repoId);
+    const repoPath = await getRepoPath(installationId, repo);
     if (fs.existsSync(repoPath)) {
       return repoPath;
     }
     fs.mkdirSync(repoPath, { recursive: true });
     const GITHUB_TOKEN = await getInstallationId(installationId);
     console.log(GITHUB_TOKEN);
-    await simpleGit(repoPath).clone(`https://x-access-token:${GITHUB_TOKEN}@github.com/${installationId}/${repoId}.git`);
+    await simpleGit(repoPath).clone(`https://x-access-token:${GITHUB_TOKEN}@github.com/${installationId}/${repo.name}.git`);
     return repoPath;
   } catch (error) {
     throw error;
