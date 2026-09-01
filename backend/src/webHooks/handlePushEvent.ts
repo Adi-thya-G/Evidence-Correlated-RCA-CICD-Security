@@ -1,10 +1,10 @@
-import { getRepoPath } from "./getRepoPath";
+import { getOrCreateRepoPath } from "./getRepoPath";
 export const handlePushEvent=async(payload:any)=>{
 try{
   
   const installationId = payload.installation.id;
   const repository=payload.repository;
-  const repoPath=await getRepoPath(installationId,repository.id);
+  const repoPath=await getOrCreateRepoPath(installationId,repository.id);
   console.log('repoPath:',repoPath)
   return repoPath;
 
