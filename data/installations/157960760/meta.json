@@ -1,0 +1,212 @@
+{
+  "installationId": 157960760,
+  "appId": 4701110,
+  "appSlug": "verdict-technology",
+  "accountLogin": "Adi-thya-G",
+  "accountId": 182072371,
+  "accountType": "User",
+  "repositorySelection": "all",
+  "permissions": {
+    "checks": "write",
+    "contents": "read",
+    "issues": "write",
+    "metadata": "read",
+    "pull_requests": "write",
+    "security_events": "read",
+    "statuses": "write"
+  },
+  "events": [
+    "pull_request",
+    "push",
+    "status"
+  ],
+  "repositories": [
+    {
+      "repoId": 882969985,
+      "name": "portfolio",
+      "fullName": "Adi-thya-G/portfolio",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 947127067,
+      "name": "starter",
+      "fullName": "Adi-thya-G/starter",
+      "private": true,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 951794720,
+      "name": "otp",
+      "fullName": "Adi-thya-G/otp",
+      "private": true,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 953773977,
+      "name": "welcome-email",
+      "fullName": "Adi-thya-G/welcome-email",
+      "private": true,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 957343041,
+      "name": "email_demo",
+      "fullName": "Adi-thya-G/email_demo",
+      "private": true,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 966631141,
+      "name": "Price",
+      "fullName": "Adi-thya-G/Price",
+      "private": true,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 975406198,
+      "name": "event_bite",
+      "fullName": "Adi-thya-G/event_bite",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 983866180,
+      "name": "Backend",
+      "fullName": "Adi-thya-G/Backend",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 985375839,
+      "name": "chai-backend",
+      "fullName": "Adi-thya-G/chai-backend",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 997896785,
+      "name": "todo",
+      "fullName": "Adi-thya-G/todo",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 1008524107,
+      "name": "Builtin-Components",
+      "fullName": "Adi-thya-G/Builtin-Components",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 1024039944,
+      "name": "product-filter-app",
+      "fullName": "Adi-thya-G/product-filter-app",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 1029777840,
+      "name": "MERN",
+      "fullName": "Adi-thya-G/MERN",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 1035425894,
+      "name": "PYTHON_DSA",
+      "fullName": "Adi-thya-G/PYTHON_DSA",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 1067593489,
+      "name": "Frontend",
+      "fullName": "Adi-thya-G/Frontend",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 1096878943,
+      "name": "ai_ui",
+      "fullName": "Adi-thya-G/ai_ui",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 1115334753,
+      "name": "e-commerce",
+      "fullName": "Adi-thya-G/e-commerce",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 1126320761,
+      "name": "java",
+      "fullName": "Adi-thya-G/java",
+      "private": true,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 1207652323,
+      "name": "Data-science",
+      "fullName": "Adi-thya-G/Data-science",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 1238484973,
+      "name": "WAF-BACKEND",
+      "fullName": "Adi-thya-G/WAF-BACKEND",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 1262679438,
+      "name": "data-science1",
+      "fullName": "Adi-thya-G/data-science1",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 1326148364,
+      "name": "devops1",
+      "fullName": "Adi-thya-G/devops1",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 1326256429,
+      "name": "Portfolio_fork",
+      "fullName": "Adi-thya-G/Portfolio_fork",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 1331823976,
+      "name": "ci-cd-258",
+      "fullName": "Adi-thya-G/ci-cd-258",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 1335140316,
+      "name": "java_repo",
+      "fullName": "Adi-thya-G/java_repo",
+      "private": false,
+      "lastSyncedCommit": null
+    },
+    {
+      "repoId": 1341658140,
+      "name": "Evidence-Correlated-RCA-CICD-Security",
+      "fullName": "Adi-thya-G/Evidence-Correlated-RCA-CICD-Security",
+      "private": true,
+      "lastSyncedCommit": null
+    }
+  ],
+  "status": "confirmed",
+  "installedAt": "2026-08-31T18:31:00.000+05:30",
+  "updatedAt": "2026-08-31T18:31:00.000+05:30",
+  "lastScanRunAt": null,
+  "schemaVersion": 1
+}

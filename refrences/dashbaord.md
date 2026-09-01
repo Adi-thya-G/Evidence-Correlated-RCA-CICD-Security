@@ -103,3 +103,17 @@ Recent pipeline runs / webhook-triggered events, for a timeline view.
   params (`tool`, `severity`, `status`) to `/findings`.
 - All routes above should sit behind `requireAuth` middleware and scope
   results to `req.user.installationId` so users only see their own repos.
+
+
+## this file structure for the repo storage
+/data
+  /installations
+    /12345678                    ← installation_id
+      /meta.json
+      /repos
+        /987654321                ← repo.id (immutable)
+          /meta.json               ← { id, name, full_name, owner, ... }
+          /source                 ← actual cloned repo
+        /987654322
+          /meta.json
+          /source

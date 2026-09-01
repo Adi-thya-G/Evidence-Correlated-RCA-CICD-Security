@@ -3,12 +3,7 @@ import { IoIosArrowRoundDown } from "react-icons/io";
 import { MdOutlineKeyboardArrowRight } from "react-icons/md";
 function Dashboard() {
   return (
-   <div className='flex-1 h-full min-w-0  flex flex-col overflow-y-auto '>
-  <header className='w-full min-h-17 border-b border-gray-300 flex items-center justify-between px-3'>
-    <h2 className='text-xl text-black font-mono font-bold'>Overview</h2>
-    
-   
-  </header>
+
   <div className='  p-5 flex flex-col gap-4 py-6 '>
      <div className='flex-1 grid grid-cols-4 gap-4 max-md:grid-cols-2 max-sm:grid-cols-1'>
       <div className='w-full h-30 border border-gray-300 rounded-xl p-4 flex flex-col justify-between'>
@@ -368,7 +363,7 @@ Semgrep — unsanitized input reaches query string</span>
         </div>
      </div>
     </div>
-</div>
+
   )
 }
 

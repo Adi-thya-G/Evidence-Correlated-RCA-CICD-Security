@@ -9,7 +9,7 @@ const menuItems = [
   { name: "SonarQube", icon: "solar:radar-2-outline" },
   { name: "Semgrep", icon: "solar:code-square-outline" },
   { name: "Trivy", icon: "solar:shield-warning-outline" },
- { name: "Gitleaks", icon: "mdi:water-alert-outline" },
+  { name: "Gitleaks", icon: "mdi:water-alert-outline" },
   { name: "Settings", icon: "solar:settings-outline" },
 ];
 

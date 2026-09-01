@@ -54,7 +54,7 @@ export interface IUser extends Document {
   installationPermissions?: Record<string, string>; // e.g. { contents: "read", pull_requests: "write" }
   installedAt?: Date | null;
   installationSuspendedAt?: Date | null;
-
+  
   createdAt: Date;
   updatedAt: Date;
 }
@@ -73,7 +73,8 @@ const userSchema = new Schema<IUser>(
       trim: true,
       index: true,
     },
-    displayName: { type: String, trim: true },
+    displayName: { type: String,
+       trim: true },
     email: {
       type: String,
       trim: true,

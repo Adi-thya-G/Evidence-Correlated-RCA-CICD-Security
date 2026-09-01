@@ -1,10 +1,12 @@
 
-import { Router } from "express";
+import express,{ Router } from "express";
+import crypto from 'crypto';
+import { env } from "@config/env";
+import { webHookHandler } from "../controllers/webHooks.controller";
+
 
 const router =Router()
-router.post("/github",async(req,res)=>{
-  console.log("weebhook")
-  res.send("web hook")
-})
+router.post("/github", express.raw({ type: 'application/json' }),webHookHandler)
+
 
 export default router
