@@ -40,7 +40,7 @@ export const getOrCreateRepoPath = async (
     fs.mkdirSync(repoPath, { recursive: true });
     const GITHUB_TOKEN = await getInstallationId(installationId);
     console.log(GITHUB_TOKEN);
-    await simpleGit(repoPath).clone(`https://x-access-token:${GITHUB_TOKEN}@github.com/${installationId}/${repoId}.git`)
+    await simpleGit(repoPath).clone(`https://x-access-token:${GITHUB_TOKEN}@github.com/${installationId}/${repoId}.git`);
     return repoPath;
   } catch (error) {
     throw error;
