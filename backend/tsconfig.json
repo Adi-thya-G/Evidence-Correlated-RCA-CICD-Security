@@ -11,7 +11,8 @@
       "@modules/*": ["./src/modules/*"],
       "@middleware/*": ["./src/middleware/*"],
       "@utils/*": ["./src/utils/*"],
-      "@types/*": ["./src/types/*"]
+      "@types/*": ["./src/types/*"],
+      "@webHooks/*": ["./src/webHooks/*"]
     },
     "strict": true,
     "esModuleInterop": true,

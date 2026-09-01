@@ -2,7 +2,7 @@ import { asyncHandler } from "@utils/asyncHandler";
 import crypto from 'crypto';
 import { CreateWebHooks } from "@utils/CreateWebHooks";
 import { Installation } from "@modules/Installation";
-
+import {handlePushEvent} from "@webHooks/handlePushEvent";
 
 
 
@@ -51,6 +51,10 @@ if (event === 'installation') {
   else {
     console.log('unhandled installation action:', payload.action);
   }
+}
+else if(event === 'push'){
+  await handlePushEvent(payload)
+
 }
 console.log('Received event:', event, 'with payload:', payload);
 
