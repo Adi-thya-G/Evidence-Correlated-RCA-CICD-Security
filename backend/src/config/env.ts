@@ -11,7 +11,7 @@ const envSchema = z.object({
   PORT:z.coerce.number().default(3000),
   //database set up
   MONGODB_URI:z.string().min(1,'MONGODB URL REQUIRED'),
-
+  DATABASE_NAME:z.string().min(1,'DATABASE NAME REQUIRED'),
   JWT_SECRET:z.string().min(16,'JWT SECRET MUST BE 16 CHARCTER'),
   JWT_EXPIRES_IN:z.string().default('7d'),
   GITHUB_CLIENT_ID:z.string(),
