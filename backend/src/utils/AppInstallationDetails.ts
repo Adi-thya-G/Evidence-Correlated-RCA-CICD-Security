@@ -3,7 +3,7 @@ import  Jwt  from "jsonwebtoken";
 import fs from "fs"
 import path from "path";
 
-const GITHUB_APP_PRIVATE_KEY= fs.readFileSync(
+export const GITHUB_APP_PRIVATE_KEY= fs.readFileSync(
   path.resolve(process.cwd(), "verdict-technology.2026-08-24.private-key.pem"),
   "utf8"
 )

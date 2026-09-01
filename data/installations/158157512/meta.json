@@ -1,5 +1,5 @@
 {
-  "installationId": 158114228,
+  "installationId": 158157512,
   "appId": 4701110,
   "appSlug": "verdict-technology",
   "accountLogin": "Adi-thya-G",
@@ -205,8 +205,8 @@
     }
   ],
   "status": "confirmed",
-  "installedAt": "2026-09-01T08:27:05.000+05:30",
-  "updatedAt": "2026-09-01T08:27:05.000+05:30",
+  "installedAt": "2026-09-01T13:00:51.000+05:30",
+  "updatedAt": "2026-09-01T13:00:51.000+05:30",
   "lastScanRunAt": null,
   "schemaVersion": 1
 }
