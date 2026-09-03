@@ -50,8 +50,22 @@ export const getOrCreateRepoPath = async (
     if (fs.existsSync(repoPath)) {
       const git = await applyRepoGitConfig(repoPath);
       await git.remote(["set-url", "origin", remote]); // token rotates, refresh it
-      await git.fetch("origin");
+
+      // Fetch everything, including new/updated branches and tags, and
+      // drop refs for branches deleted on the remote.
+      await git.fetch(["origin", "--prune", "--tags"]);
+
+      // origin/HEAD is only set at clone time and can go stale (e.g. if
+      // the default branch changed remotely). Refresh it explicitly
+      // before relying on it.
+      await git.raw(["remote", "set-head", "origin", "--auto"]);
+
       await git.reset(["--hard", "origin/HEAD"]);
+
+      // reset --hard only affects tracked files; wipe anything untracked
+      // (build artifacts, stray files from a previous run) too.
+      await git.clean("f", ["-d", "-x"]);
+
       return repoPath;
     }
 
