@@ -33,6 +33,7 @@ export const getInstallationId = async (installationId: number) => {
 const applyRepoGitConfig = async (repoPath: string) => {
   const git = simpleGit(repoPath);
   await git.addConfig("credential.helper", "", false, "local");
+  await git.addConfig("credential.helper", "", false, "local");
   await git.addConfig("user.name", "YourApp Bot");
   await git.addConfig("user.email", "bot@yourapp.com");
   return git;
