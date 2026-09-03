@@ -68,6 +68,7 @@ export const getOrCreateRepoPath = async (
     const remote = `https://x-access-token:${GITHUB_TOKEN}@github.com/${repo.full_name}.git`;
 
     if (fs.existsSync(repoPath)) {
+      console.log(`[getOrCreateRepoPath] repoPath exists: ${repoPath}`);
       const git = await applyRepoGitConfig(repoPath);
       await git.remote(["set-url", "origin", remote]); // token rotates, refresh it
 
