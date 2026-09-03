@@ -39,6 +39,11 @@ yarn-error.log*
 pnpm-debug.log*
 
 # ==========================
+# Local data / cloned repos
+# ==========================
+data/
+
+# ==========================
 # Testing / coverage
 # ==========================
 coverage/
