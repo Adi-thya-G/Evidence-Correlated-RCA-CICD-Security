@@ -79,3 +79,5 @@ docker-compose.override.yml
 .cache/
 tmp/
 temp/
+
+echo "data/" >> .gitignore
