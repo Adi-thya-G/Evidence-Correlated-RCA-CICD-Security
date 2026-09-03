@@ -12,6 +12,11 @@ export const runSonarQubeScanner =async(reportPath: string, projectKey: string )
     sonarQubeScanner.stdout.on('data', (data) => {
       console.log(`SonarQube Scanner Output: ${data}`);
     })
+
+    sonarQubeScanner.stderr.on('data', (data) => {
+      console.error(`SonarQube Scanner Error: ${data}`);
+      throw new Error(`SonarQube Scanner Error: ${data}`);
+    })
     sonarQubeScanner.on('close', (code) => {
       if (code === 0) {
         console.log('SonarQube Scanner completed successfully.');

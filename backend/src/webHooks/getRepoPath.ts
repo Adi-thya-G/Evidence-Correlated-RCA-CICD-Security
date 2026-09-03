@@ -78,15 +78,11 @@ export const getOrCreateRepoPath = async (
       // Fetch just that branch, plus tags, and prune deleted remote refs.
       await git.fetch(["origin", branch, "--prune", "--tags"]);
 
-      const fetchLog = await git.raw(["log", "-1", `origin/${branch}`, "--oneline"]);
-      console.log(`[getOrCreateRepoPath] fetched ${repo.full_name}@${branch}: ${fetchLog.trim()}`);
-
       await git.checkout(branch).catch(() => git.checkout(["-B", branch, `origin/${branch}`]));
       await git.reset(["--hard", `origin/${branch}`]);
 
       // reset --hard only affects tracked files; wipe anything untracked
       // (build artifacts, stray files from a previous run) too.
-      console.log(`[getOrCreateRepoPath] cleaning untracked files in ${repo.full_name}`)
       await git.clean("f", ["-d", "-x"]);
 
       return repoPath;
