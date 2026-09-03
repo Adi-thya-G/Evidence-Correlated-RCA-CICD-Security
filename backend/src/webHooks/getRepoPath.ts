@@ -95,6 +95,7 @@ export const getOrCreateRepoPath = async (
 
     return repoPath;
   } catch (error) {
+    console.error(`[getOrCreateRepoPath] Error processing repo ${repo.full_name}:`, error);
     throw error;
   }
 };
