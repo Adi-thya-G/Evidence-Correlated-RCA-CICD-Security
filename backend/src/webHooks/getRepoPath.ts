@@ -51,16 +51,25 @@ export const getOrCreateRepoPath = async (
       const git = await applyRepoGitConfig(repoPath);
       await git.remote(["set-url", "origin", remote]); // token rotates, refresh it
 
-      // Fetch everything, including new/updated branches and tags, and
-      // drop refs for branches deleted on the remote.
-      await git.fetch(["origin", "--prune", "--tags"]);
+      // Use the branch name GitHub itself reports as default, instead of
+      // relying on git to resolve origin/HEAD locally — that resolution
+      // step is where fetch was going stale/incorrect. repo.default_branch
+      // comes straight from the GitHub API, so it's always accurate.
+      const branch = repo.default_branch;
+      if (!branch) {
+        throw new Error(
+          `repo.default_branch is missing for ${repo.full_name}; cannot determine branch to sync`,
+        );
+      }
 
-      // origin/HEAD is only set at clone time and can go stale (e.g. if
-      // the default branch changed remotely). Refresh it explicitly
-      // before relying on it.
-      await git.raw(["remote", "set-head", "origin", "--auto"]);
+      // Fetch just that branch, plus tags, and prune deleted remote refs.
+      await git.fetch(["origin", branch, "--prune", "--tags"]);
 
-      await git.reset(["--hard", "origin/HEAD"]);
+      const fetchLog = await git.raw(["log", "-1", `origin/${branch}`, "--oneline"]);
+      console.log(`[getOrCreateRepoPath] fetched ${repo.full_name}@${branch}: ${fetchLog.trim()}`);
+
+      await git.checkout(branch).catch(() => git.checkout(["-B", branch, `origin/${branch}`]));
+      await git.reset(["--hard", `origin/${branch}`]);
 
       // reset --hard only affects tracked files; wipe anything untracked
       // (build artifacts, stray files from a previous run) too.
