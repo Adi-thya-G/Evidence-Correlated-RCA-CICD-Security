@@ -30,12 +30,10 @@ export const getInstallationId = async (installationId: number) => {
 // Applies common repo-local git config: clears any cached credential
 // helper (so nothing but our embedded token is used for auth) and sets
 // a consistent bot identity for commits made by the app.
-const applyRepoGitConfig = async (repoPath: string) => {
-  const git = simpleGit(repoPath);
-  await git.addConfig("credential.helper", "", false, "local");
-  await git.addConfig("credential.helper", "", false, "local");
-  await git.addConfig("user.name", "YourApp Bot");
-  await git.addConfig("user.email", "bot@yourapp.com");
+const applyRepoGitConfig = (repoPath: string) => {
+  const git = simpleGit(repoPath, {
+    config: ["credential.helper=", "user.name=YourApp Bot", "user.email=bot@yourapp.com"],
+  });
   return git;
 };
 
@@ -68,12 +66,10 @@ export const getOrCreateRepoPath = async (
     const remote = `https://x-access-token:${GITHUB_TOKEN}@github.com/${repo.full_name}.git`;
 
     if (fs.existsSync(repoPath)) {
-      const git = await applyRepoGitConfig(repoPath);
-      await git.remote(["set-url", "origin", remote]); // token rotates, refresh it
+      const git = applyRepoGitConfig(repoPath);
+      await git.remote(["set-url", "origin", remote]);
 
-      const branch = await getRemoteDefaultBranch(repoPath, remote);
-
-      // Fetch just that branch, plus tags, and prune deleted remote refs.
+      const branch = await getRemoteDefaultBranch(repoPath, remote, git);
       await git.fetch(["origin", branch, "--prune", "--tags"]);
 
       const fetchLog = await git.raw(["log", "-1", `origin/${branch}`, "--oneline"]);
@@ -81,18 +77,15 @@ export const getOrCreateRepoPath = async (
 
       await git.checkout(branch).catch(() => git.checkout(["-B", branch, `origin/${branch}`]));
       await git.reset(["--hard", `origin/${branch}`]);
-
-      // reset --hard only affects tracked files; wipe anything untracked
-      // (build artifacts, stray files from a previous run) too.
-      console.log(`[getOrCreateRepoPath] cleaning untracked files in ${repo.full_name}`)
       await git.clean("f", ["-d", "-x"]);
 
       return repoPath;
     }
 
     fs.mkdirSync(repoPath, { recursive: true });
-    await simpleGit(repoPath).clone(remote, repoPath);
-    await applyRepoGitConfig(repoPath);
+    const git = simpleGit({ config: ["credential.helper="] }); // no repoPath yet — cwd not set until clone target exists
+    await git.clone(remote, repoPath);
+    applyRepoGitConfig(repoPath); // ensure future calls also carry the override
 
     return repoPath;
   } catch (error) {
