@@ -4,7 +4,7 @@ import { CreateWebHooks } from "@utils/CreateWebHooks";
 import { Installation } from "@modules/Installation";
 import {handlePushEvent} from "@webHooks/handlePushEvent";
 
-
+import {runSonarQubeScanner,projectKey} from "@utils/SonarQube"
 
 
 export const webHookHandler=asyncHandler(async(req,res,next)=>{
@@ -53,8 +53,8 @@ if (event === 'installation') {
   }
 }
 else if(event === 'push'){
-  await handlePushEvent(payload)
-
+ const response = await handlePushEvent(payload)
+ await runSonarQubeScanner(response, projectKey(payload.installation.id, payload.repository.id));
 }
 console.log('Received event:', event, 'with payload:', payload);
 

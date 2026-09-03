@@ -40,8 +40,11 @@ const envSchema = z.object({
 
   // rate limiter env variable
   RATE_LIMIT_WINDOW_MS:z.coerce.number().default(900000),
-  RATE_LIMIT_MAX:z.coerce.number().default(100)
+  RATE_LIMIT_MAX:z.coerce.number().default(100),
 
+  // sonar qube env variable
+  SONARQUBE_HOST:z.string(),
+  SONARQUBE_TOKEN:z.string(),
 
 }).readonly()
 
