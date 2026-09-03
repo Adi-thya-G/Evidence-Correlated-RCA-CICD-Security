@@ -83,6 +83,7 @@ export const getOrCreateRepoPath = async (
 
       // reset --hard only affects tracked files; wipe anything untracked
       // (build artifacts, stray files from a previous run) too.
+      console.log(`[getOrCreateRepoPath] cleaning untracked files in ${repo.full_name}`)
       await git.clean("f", ["-d", "-x"]);
 
       return repoPath;
