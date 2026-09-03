@@ -43,12 +43,9 @@ const applyRepoGitConfig = (repoPath: string) => {
 const getRemoteDefaultBranch = async (
   repoPath: string,
   remote: string,
+  git: ReturnType<typeof simpleGit>,
 ): Promise<string> => {
-  const git = simpleGit(repoPath);
   const output = await git.raw(["ls-remote", "--symref", remote, "HEAD"]);
-  // Output looks like:
-  //   ref: refs/heads/main\tHEAD
-  //   <sha>\tHEAD
   const match = output.match(/^ref:\s+refs\/heads\/(\S+)\s+HEAD/m);
   if (!match) {
     throw new Error(`Could not determine default branch from remote ${remote}`);
