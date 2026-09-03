@@ -31,7 +31,9 @@ export const getInstallationId = async (installationId: number) => {
 // helper (so nothing but our embedded token is used for auth) and sets
 // a consistent bot identity for commits made by the app.
 const applyRepoGitConfig = async (repoPath: string) => {
-  const git = simpleGit(repoPath);
+  const git = simpleGit(repoPath,{
+    unsafe: { allowUnsafeCredentialHelper: true },
+  } as any);
   await git.addConfig("credential.helper", "", false, "local");
   await git.addConfig("credential.helper", "", false, "local");
   await git.addConfig("user.name", "YourApp Bot");
@@ -91,7 +93,9 @@ export const getOrCreateRepoPath = async (
     }
 
     fs.mkdirSync(repoPath, { recursive: true });
-    await simpleGit(repoPath).clone(remote, repoPath);
+    await simpleGit(repoPath,{
+    unsafe: { allowUnsafeCredentialHelper: true },
+  } as any).clone(remote, repoPath);
     await applyRepoGitConfig(repoPath);
 
     return repoPath;
