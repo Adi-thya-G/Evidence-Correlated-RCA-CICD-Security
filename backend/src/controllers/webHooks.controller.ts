@@ -54,7 +54,8 @@ if (event === 'installation') {
 }
 else if(event === 'push'){
  const response = await handlePushEvent(payload)
- await runSonarQubeScanner(response, projectKey(payload.installation.id, payload.repository.id));
+ const projectkey=await projectKey(payload.installation.id,payload.repository.id)
+ await runSonarQubeScanner(response, projectkey);
 }
 console.log('Received event:', event, 'with payload:', payload);
 

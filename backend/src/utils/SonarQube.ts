@@ -27,7 +27,7 @@ export const runSonarQubeScanner =async(reportPath: string, projectKey: string )
   })
 }
 
-export const projectKey=(instanceId:number,repoId:number):string=>
+export const projectKey=async (instanceId:number,repoId:number):Promise<string>=>
 {
   return  String(instanceId)+"_"+String(repoId)as string
 }
