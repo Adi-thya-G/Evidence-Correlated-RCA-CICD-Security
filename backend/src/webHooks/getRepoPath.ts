@@ -33,7 +33,7 @@ export const getOrCreateRepoPath = async (
   repo:any,
 ): Promise<string> => {
   try {
-    const repoPath = await getRepoPath(installationId, repo);
+    const repoPath = await getRepoPath(installationId, repo.id);
     if (fs.existsSync(repoPath)) {
       return repoPath;
     }
