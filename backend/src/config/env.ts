@@ -45,6 +45,7 @@ const envSchema = z.object({
   // sonar qube env variable
   SONARQUBE_HOST:z.string(),
   SONARQUBE_TOKEN:z.string(),
+  SONARQUBE_PATH:z.string(),
 
 }).readonly()
 

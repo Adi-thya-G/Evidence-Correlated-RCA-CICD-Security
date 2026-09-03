@@ -1,8 +1,9 @@
 import {spawn} from "child_process";
-
+import { env } from "@config/env";
+const SONAR_SCANNER_BAT =env.SONARQUBE_PATH
 export const runSonarQubeScanner =async(reportPath: string, projectKey: string )=>{
   return new Promise((resolve,reject)=>{
-    const sonarQubeScanner = spawn('sonar-scanner', [
+    const sonarQubeScanner = spawn(SONAR_SCANNER_BAT, [
       `-Dsonar.projectKey=${projectKey}`,
       `-Dsonar.sources=.`,
       `-Dsonar.host.url=${process.env.SONARQUBE_HOST}`,
