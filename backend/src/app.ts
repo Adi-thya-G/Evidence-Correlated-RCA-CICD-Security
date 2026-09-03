@@ -16,7 +16,7 @@ app.use('/api/v1/webhooks',webhookLimiter,webHookRouter)
 
 // Middleware to parse JSON and URL-encoded data
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true }))
 // Middleware to parse cookies that is set and get cookies
 app.use(cookieParser());
 app.use('/api',router)
