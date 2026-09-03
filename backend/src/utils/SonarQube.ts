@@ -7,7 +7,7 @@ export const runSonarQubeScanner =async(reportPath: string, projectKey: string )
       `-Dsonar.sources=.`,
       `-Dsonar.host.url=${process.env.SONARQUBE_HOST}`,
       `-Dsonar.login=${process.env.SONARQUBE_TOKEN}`,
-    ],{cwd: reportPath})
+    ],{cwd: reportPath,shell:true})
 
     sonarQubeScanner.stdout.on('data', (data) => {
       console.log(`SonarQube Scanner Output: ${data}`);
