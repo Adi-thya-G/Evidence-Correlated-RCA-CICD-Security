@@ -38,6 +38,25 @@ const applyRepoGitConfig = async (repoPath: string) => {
   return git;
 };
 
+// Asks the remote directly which branch its HEAD points to, using
+// `git ls-remote --symref` — no dependency on repo.default_branch being
+// present, and no dependency on local refs (origin/HEAD) going stale.
+const getRemoteDefaultBranch = async (
+  repoPath: string,
+  remote: string,
+): Promise<string> => {
+  const git = simpleGit(repoPath);
+  const output = await git.raw(["ls-remote", "--symref", remote, "HEAD"]);
+  // Output looks like:
+  //   ref: refs/heads/main\tHEAD
+  //   <sha>\tHEAD
+  const match = output.match(/^ref:\s+refs\/heads\/(\S+)\s+HEAD/m);
+  if (!match) {
+    throw new Error(`Could not determine default branch from remote ${remote}`);
+  }
+  return match[1];
+};
+
 export const getOrCreateRepoPath = async (
   installationId: number,
   repo: any,
@@ -51,16 +70,7 @@ export const getOrCreateRepoPath = async (
       const git = await applyRepoGitConfig(repoPath);
       await git.remote(["set-url", "origin", remote]); // token rotates, refresh it
 
-      // Use the branch name GitHub itself reports as default, instead of
-      // relying on git to resolve origin/HEAD locally — that resolution
-      // step is where fetch was going stale/incorrect. repo.default_branch
-      // comes straight from the GitHub API, so it's always accurate.
-      const branch = repo.default_branch;
-      if (!branch) {
-        throw new Error(
-          `repo.default_branch is missing for ${repo.full_name}; cannot determine branch to sync`,
-        );
-      }
+      const branch = await getRemoteDefaultBranch(repoPath, remote);
 
       // Fetch just that branch, plus tags, and prune deleted remote refs.
       await git.fetch(["origin", branch, "--prune", "--tags"]);
