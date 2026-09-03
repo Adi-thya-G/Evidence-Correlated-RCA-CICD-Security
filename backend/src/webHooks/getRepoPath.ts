@@ -34,15 +34,20 @@ export const getOrCreateRepoPath = async (
 ): Promise<string> => {
   try {
     const repoPath = await getRepoPath(installationId, repo.id);
+    const GITHUB_TOKEN = await getInstallationId(installationId);
+     const remote = `https://x-access-token:${GITHUB_TOKEN}@github.com/${repo.full_name}.git`;
     if (fs.existsSync(repoPath)) {
+       const git = simpleGit(repoPath);
+    await git.remote(['set-url', 'origin', remote]); // token rotates, refresh it
+    await git.fetch('origin');
+    await git.reset(['--hard', 'origin/HEAD']);
+    return repoPath;
       return repoPath;
     }
     fs.mkdirSync(repoPath, { recursive: true });
-    const GITHUB_TOKEN = await getInstallationId(installationId);
+    
     console.log(GITHUB_TOKEN);
-    await simpleGit(repoPath).clone(
-  `https://x-access-token:${GITHUB_TOKEN}@github.com/${repo.full_name}.git`
-);
+    await simpleGit(repoPath).clone(remote, repoPath);
     return repoPath;
   } catch (error) {
     throw error;
