@@ -10,6 +10,8 @@ export interface IInstallationRepo {
   fullName: string;
   private: boolean;
   lastSyncedCommit?: string | null;
+  disconnected: boolean;
+  correlationHistory: boolean;
 }
 
 export type InstallationStatus =
@@ -54,6 +56,10 @@ const repoSchema = new Schema<IInstallationRepo>(
     fullName: { type: String, required: true, trim: true },
     private: { type: Boolean, default: false },
     lastSyncedCommit: { type: String, default: null },
+    disconnected: { type: Boolean, default: false },
+    correlationHistory: { type: Boolean, default: false },
+
+
   },
   { _id: false }
 );

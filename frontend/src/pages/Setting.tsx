@@ -23,7 +23,7 @@ function Setting() {
 
       </div>
        {/* <Notification/> */}
-       {/* <Correlation/> */}
+       <Correlation/>
        {/* <DangerZone/> */}
 
     </div>

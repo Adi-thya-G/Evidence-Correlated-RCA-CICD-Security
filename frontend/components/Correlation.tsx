@@ -1,7 +1,19 @@
-import React from 'react'
+import {useState} from 'react'
 import RangeThreshold from '../components/RangeThreshold'
 import Button from '../components/Button'
 function Correlation() {
+
+  const [threshold,setThreshold]=useState<number>(0.5);
+  const [retrieval,setRetrieval]=useState<number>(3);
+
+  const submit=async()=>{
+
+  }
+  const reset=async()=>{
+      setThreshold(0.5);
+      setRetrieval(3);
+  }
+
   return (
     <div className='p-2 flex flex-col gap-5 w-full'>
       <div className=' w-110 flex gap-2 flex-col'>
@@ -11,13 +23,13 @@ function Correlation() {
          These are the Layer 2 parameters from the RCA pipeline.</p>
       </div>
       <div className='flex flex-col gap-4'>
-        <RangeThreshold min='0.5' max='0.99' step='0.01' title='Similarity threshold' default='0.5' description='Minimum vector similarity for two findings to be considered part of the same cluster.' />
-         <RangeThreshold min='3' max='20' step='1' title='Top-K retrieval ' default='3' description='Number of semantically similar historical findings retrieved per new finding.' />
+        <RangeThreshold min='0.5' max='0.99' step='0.01' title='Similarity threshold' default='0.5' description='Minimum vector similarity for two findings to be considered part of the same cluster.' value={threshold} setvalue={setThreshold} />
+         <RangeThreshold min='3' max='20' step='1' title='Top-K retrieval ' default='3' description='Number of semantically similar historical findings retrieved per new finding.' value={retrieval} setvalue={setRetrieval} />
         
         </div>
         <div className='border-t border-gray-300 w-full mt-8 p-2 py-4 flex justify-end gap-4'>
-          <Button title='Discard' className='text-sm border border-gray-300 rounded-sm font-serif px-4 font-medium align-middle cursor-pointer active:scale-95'/>
-          <Button title='Save change' className='text-sm border border-gray-300 rounded-sm font-serif px-4 font-medium align-middle bg-black text-white cursor-pointer active:scale-95'/>
+          <Button title='Discard' className='text-sm border border-gray-300 rounded-sm font-serif px-4 font-medium align-middle cursor-pointer active:scale-95'  onClick={reset} />
+          <Button title='Save change' className='text-sm border border-gray-300 rounded-sm font-serif px-4 font-medium align-middle bg-black text-white cursor-pointer active:scale-95' onClick={submit}/>
          
 
         </div>

@@ -1,8 +1,14 @@
 import React from 'react'
 
-function Button({title,className}:{title:string,className:string}) {
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  title: string;
+  className?: string;
+}
+
+
+function Button({title,className,...props}:ButtonProps) {
   return (
-    <button className={`p-2  ${className}`}>
+    <button className={`p-2  ${className}`} {...props}>
     {title}
     </button>
   )
