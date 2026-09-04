@@ -2,10 +2,10 @@
 
 import './App.css'
 
-import SideNav from '../components/SideNav'
-import Dashboard from './pages/Dashboard'
-import Finding from './pages/Finding'
-import Setting from './pages/Setting'
+import SideNav from '@root/components/SideNav'
+import Dashboard from '@/pages/Dashboard'
+import Finding from '@/pages/Finding'
+import Setting from '@/pages/Setting'
 
 function App() {
   

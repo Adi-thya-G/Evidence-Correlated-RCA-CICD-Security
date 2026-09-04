@@ -7,6 +7,13 @@
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@/*": ["src/*"],
+      "@root/*": ["*"]
+
+    },
 
     /* Bundler mode */
     "moduleResolution": "bundler",
