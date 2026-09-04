@@ -46,6 +46,7 @@ const envSchema = z.object({
   SONARQUBE_HOST:z.string(),
   SONARQUBE_TOKEN:z.string(),
   SONARQUBE_PATH:z.string(),
+  SONARQUBE_SECRET_WEBHOOK:z.string()
 
 }).readonly()
 
