@@ -4,9 +4,11 @@ import { webHookHandler } from "../controllers/webHooks.controller";
 import { webhookLimiter } from "@middleware/rateLimiter.middleware";
 
 
+
+// webhooks router we should use only post method not get method
 const router =Router()
 router.post("/github", express.raw({ type: 'application/json' }),webhookLimiter,webHookHandler)
-router.get("/sonarqube",express.raw({type: 'application/json'}),async(req,res)=>{
+router.post("/sonarqube",express.raw({type: 'application/json'}),async(req,res)=>{
   console.log("SonarQube webhook endpoint is working",req.body)
   res.send("SonarQube webhook endpoint is working")
 })
