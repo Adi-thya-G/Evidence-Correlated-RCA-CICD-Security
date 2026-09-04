@@ -3,7 +3,7 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet'
 import router from './routes/index.router';
 import webHookRouter from './routes/webhook.router'
-import { webhookLimiter } from "@middleware/rateLimiter.middleware";
+
 const app=express();
 
 app.set("trust proxy", 1);
@@ -12,7 +12,7 @@ app.set("trust proxy", 1);
 
 app.use(helmet())
 // we define web router before the express.json middleware because webhooks give data stream form so when use middleware express.json then middleware store value and read value but data only read once so that we have keep app.use()
-app.use('/api/v1/webhooks',webhookLimiter,webHookRouter)
+app.use('/api/v1/webhooks',webHookRouter)
 
 // Middleware to parse JSON and URL-encoded data
 app.use(express.json());
