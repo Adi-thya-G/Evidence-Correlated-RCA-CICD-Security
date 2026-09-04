@@ -12,7 +12,8 @@
       "@middleware/*": ["./src/middleware/*"],
       "@utils/*": ["./src/utils/*"],
       "@types/*": ["./src/types/*"],
-      "@webHooks/*": ["./src/webHooks/*"]
+      "@webHooks/*": ["./src/webHooks/*"],
+      "@axios/*":["./src/axios/*"]
     },
     "strict": true,
     "esModuleInterop": true,
