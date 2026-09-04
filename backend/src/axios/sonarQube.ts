@@ -4,7 +4,7 @@ import axios from 'axios';
 const SONARQUBE=env.SONARQUBE_HOST
 const SONAR_TOKEN = process.env.SONAR_TOKEN;
 
-async function fetchSonarIssues(projectKey: string, branch: string) {
+export async function fetchSonarIssues(projectKey: string, branch: string) {
   const response = await axios.get(`${SONARQUBE}/api/issues/search`, {
     params: {
       componentKeys: projectKey,

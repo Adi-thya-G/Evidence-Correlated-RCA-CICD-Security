@@ -9,8 +9,8 @@ import {fetchSonarIssues} from "@axios/sonarQube";
 const router =Router()
 router.post("/github", express.raw({ type: 'application/json' }),webhookLimiter,webHookHandler)
 router.post("/sonarqube",express.json(),webhookLimiter,async(req,res)=>{
-  console.log("SonarQube webhook endpoint is working",req.body)
-  fetchSonarIssues(req.body.project.key, req.body.branch.name)
+ const response= await fetchSonarIssues(req.body.project.key, req.body.branch.name)
+ console.log("SonarQube issues fetched:", response)
   res.send("SonarQube webhook endpoint is working")
 })
 
