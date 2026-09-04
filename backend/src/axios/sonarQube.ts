@@ -19,3 +19,11 @@ export async function fetchSonarIssues(projectKey: string, branch: string) {
   });
   return response.data.issues; // array of finding objects
 }
+
+export async function fetchSonarHotspots(projectKey: string, branch: string) {
+  const response = await axios.get(`${SONARQUBE}/api/hotspots/search`, {
+    params: { projectKey, branch, ps: 500 },
+    auth: { username: SONAR_TOKEN as string, password: '' },
+  });
+  return response.data.hotspots;
+}
