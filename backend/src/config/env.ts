@@ -52,6 +52,7 @@ const envSchema = z.object({
 
 const parsedData=envSchema.safeParse(process.env)
 // parseData check value exist in env.local file
+console.log("parsedData",parsedData)
 if(!parsedData.success){
   console.log("env configuration failed")
   process.exit(1)
