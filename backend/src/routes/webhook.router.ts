@@ -25,7 +25,7 @@ router.post("/sonarqube",express.json(),webhookLimiter,async(req,res)=>{
   ]);
  console.log("SonarQube issues fetched:", issues)
  console.log("SonarQube hotspots fetched:", hotspots)
-  res.send("SonarQube webhook endpoint is working")
+ return  res.send("SonarQube webhook endpoint is working")
 })
 
 
