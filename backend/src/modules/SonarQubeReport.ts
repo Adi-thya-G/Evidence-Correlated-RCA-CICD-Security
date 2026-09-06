@@ -83,7 +83,7 @@ export interface ISonarQubeReport extends Document {
 
 const SonarQubeReportSchema = new Schema<ISonarQubeReport>(
   {
-    projectKey: { type: String, required: true, index: true },
+    projectKey: { type: String, required: true, unique: true }, 
     projectName: String,
     branch: { type: String, default: "main", index: true },
     taskId: String,

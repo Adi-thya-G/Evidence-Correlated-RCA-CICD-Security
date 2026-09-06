@@ -71,7 +71,9 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
     fetchSonarIssues(projectKey, branch),
     fetchSonarHotspots(projectKey, branch),
   ]);
- await SonarQubeReport.create({
+ await SonarQubeReport.findByIdAndUpdate({
+  projectKey
+ },{
       projectKey: projectKey,
       projectName: payload.project.name,
       branch,
@@ -85,7 +87,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
       totalHotspots: hotspots.length,
       analysedAt: payload.analysedAt ? new Date(payload.analysedAt) : new Date(),
       rawPayload: payload,
-    });
+    },{upsert:true,new:true});
    
   console.log(hotspots)
 
