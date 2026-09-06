@@ -5,9 +5,6 @@ try{
   const repository=payload.repository;
   const repoPath=await getOrCreateRepoPath(installationId,repository);
   return repoPath;
-
-
-
 }
 catch(err){
   throw new Error(`Error in handlePushEvent: ${err}`);
