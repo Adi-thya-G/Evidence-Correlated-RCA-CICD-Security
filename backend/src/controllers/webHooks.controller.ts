@@ -61,7 +61,10 @@ export const webHookHandler = asyncHandler(async (req, res) => {
     console.log(ownerId);
     const user=await User.findOne({githubId:ownerId},{_id:1});
     console.log(user)
-    await SonarQubeReport.findOneAndUpdate({projectKey:projectKey},{accountId:user?._id as mongoose.Types.ObjectId});
+    const up=await SonarQubeReport.findOneAndUpdate({projectKey:projectKey},{accountId:user?._id as mongoose.Types.ObjectId},{
+      upsert: true, new: true
+    });
+    console.log(up)
   }
 
   res.send("hello");
