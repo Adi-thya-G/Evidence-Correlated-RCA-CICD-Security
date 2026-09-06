@@ -58,7 +58,7 @@ export const webHookHandler = asyncHandler(async (req, res) => {
     await runSonarQubeScanner(response, projectkey);
     const ownerId = payload.organization?.id ?? payload.repository.owner.id;
     const user=await User.findOne({githubId:ownerId},{_id:1});
-    SonarQubeReport.findOneAndUpdate({projectKey:projectKey},{accountId:user?._id});
+    await SonarQubeReport.findOneAndUpdate({projectKey:projectKey},{accountId:user?._id});
   }
 
   res.send("hello");
