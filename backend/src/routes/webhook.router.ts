@@ -12,7 +12,7 @@ router.post("/github",webhookLimiter, express.raw({ type: 'application/json' }),
 router.post("/sonarqube",express.json(),webhookLimiter,async(req,res)=>{
   try{
   const payload = req.body;
-  res.status(200).send('OK'); // ack fast, process async — remember the 10s SonarQube timeout
+  res.status(200).send('OK'); // ack fast, process async — remember the 10s SonarQube timeout it should not be returned before processing is complete
 
   if (payload.status !== 'SUCCESS') return;
 
@@ -26,11 +26,10 @@ router.post("/sonarqube",express.json(),webhookLimiter,async(req,res)=>{
   ]);
  console.log("SonarQube issues fetched:", issues)
  console.log("SonarQube hotspots fetched:", hotspots)
- return  res.send("SonarQube webhook endpoint is working")
+ 
 }
 catch(err){
  console.error(`Error processing SonarQube webhook: ${err}`);
-  return res.status(500).send(`Error processing SonarQube webhook: ${err}`);
 }
  
 })
