@@ -6,7 +6,7 @@ import { handlePushEvent } from "@webHooks/handlePushEvent";
 import { runSonarQubeScanner, projectKey } from "@utils/SonarQube";
 import { fetchSonarIssues, fetchSonarHotspots } from "@axios/sonarQube";
 import {SonarQubeReport} from "@modules/SonarQubeReport";
-export const webHookHandler = asyncHandler(async (req, res, next) => {
+export const webHookHandler = asyncHandler(async (req, res) => {
   const signature = req.headers["x-hub-signature-256"] as string;
   const expected =
     "sha256=" +
@@ -77,7 +77,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
       branch,
       taskId: payload.taskId,
       status: payload.status,
-      qualityGateStatus: payload.qualityGate?.status,
+      qualityGateStatus: payload.qualityGate?.status,  
       qualityGateConditions: payload.qualityGate?.conditions ?? [],
       issues,
       hotspots,
