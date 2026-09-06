@@ -7,6 +7,7 @@ import { runSonarQubeScanner, projectKey } from "@utils/SonarQube";
 import { fetchSonarIssues, fetchSonarHotspots } from "@axios/sonarQube";
 import {SonarQubeReport} from "@modules/SonarQubeReport";
 import { User } from "@modules/User";
+import mongoose from "mongoose";
 export const webHookHandler = asyncHandler(async (req, res) => {
   const signature = req.headers["x-hub-signature-256"] as string;
   const expected =
@@ -60,7 +61,7 @@ export const webHookHandler = asyncHandler(async (req, res) => {
     console.log(ownerId);
     const user=await User.findOne({githubId:ownerId},{_id:1});
     console.log(user)
-    await SonarQubeReport.findOneAndUpdate({projectKey:projectKey},{accountId:user?._id});
+    await SonarQubeReport.findOneAndUpdate({projectKey:projectKey},{accountId:user?._id as mongoose.Types.ObjectId});
   }
 
   res.send("hello");
