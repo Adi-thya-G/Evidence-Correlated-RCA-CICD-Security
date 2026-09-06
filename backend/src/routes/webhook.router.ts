@@ -17,6 +17,7 @@ router.post("/sonarqube",express.json(),webhookLimiter,async(req,res)=>{
 
   const projectKey = payload.project.key;
   const branch = payload.branch?.name ?? 'main';
+  console.log(`Received SonarQube webhook for project ${projectKey} on branch ${branch}`);
 
  const [issues, hotspots] = await Promise.all([
     fetchSonarIssues(projectKey, branch),
