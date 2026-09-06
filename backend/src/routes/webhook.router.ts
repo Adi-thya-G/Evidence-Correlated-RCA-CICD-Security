@@ -10,6 +10,7 @@ import { projectKey } from "@utils/SonarQube";
 const router =Router()
 router.post("/github",webhookLimiter, express.raw({ type: 'application/json' }),webHookHandler)
 router.post("/sonarqube",express.json(),webhookLimiter,async(req,res)=>{
+  try{
   const payload = req.body;
   res.status(200).send('OK'); // ack fast, process async — remember the 10s SonarQube timeout
 
@@ -26,6 +27,12 @@ router.post("/sonarqube",express.json(),webhookLimiter,async(req,res)=>{
  console.log("SonarQube issues fetched:", issues)
  console.log("SonarQube hotspots fetched:", hotspots)
  return  res.send("SonarQube webhook endpoint is working")
+}
+catch(err){
+ console.error(`Error processing SonarQube webhook: ${err}`);
+  return res.status(500).send(`Error processing SonarQube webhook: ${err}`);
+}
+ 
 })
 
 
