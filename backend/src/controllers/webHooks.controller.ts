@@ -5,7 +5,7 @@ import { Installation } from "@modules/Installation";
 import { handlePushEvent } from "@webHooks/handlePushEvent";
 import { runSonarQubeScanner, projectKey } from "@utils/SonarQube";
 import { fetchSonarIssues, fetchSonarHotspots } from "@axios/sonarQube";
-
+import {SonarQubeReport} from "@modules/SonarQubeReport";
 export const webHookHandler = asyncHandler(async (req, res, next) => {
   const signature = req.headers["x-hub-signature-256"] as string;
   const expected =
@@ -71,6 +71,21 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
     fetchSonarIssues(projectKey, branch),
     fetchSonarHotspots(projectKey, branch),
   ]);
+ await SonarQubeReport.create({
+      projectKey: projectKey,
+      projectName: payload.project.name,
+      branch,
+      taskId: payload.taskId,
+      status: payload.status,
+      qualityGateStatus: payload.qualityGate?.status,
+      qualityGateConditions: payload.qualityGate?.conditions ?? [],
+      issues,
+      hotspots,
+      totalIssues: issues.length,
+      totalHotspots: hotspots.length,
+      analysedAt: payload.analysedAt ? new Date(payload.analysedAt) : new Date(),
+      rawPayload: payload,
+    });
    
   console.log(hotspots)
 
