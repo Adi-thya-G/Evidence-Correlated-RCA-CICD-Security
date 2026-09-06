@@ -52,16 +52,16 @@ export const webHookHandler = asyncHandler(async (req, res) => {
     }
   } else if (event === "push") {
     const response = await handlePushEvent(payload);
-    const projectkey = await projectKey(
+    const key = await projectKey(
       payload.installation.id,
       payload.repository.id,
     );
-    await runSonarQubeScanner(response, projectkey);
+    await runSonarQubeScanner(response, key);
     const ownerId = payload.organization?.id ?? payload.repository.owner.id;
     console.log(ownerId);
     const user=await User.findOne({githubId:ownerId},{_id:1});
     console.log(user)
-    const up=await SonarQubeReport.findOneAndUpdate({projectKey:projectKey},{accountId:user?._id as mongoose.Types.ObjectId},{
+    const up=await SonarQubeReport.findOneAndUpdate({projectKey:key},{accountId:user?._id as mongoose.Types.ObjectId},{
       upsert: true, new: true
     });
     console.log(up)
