@@ -1,5 +1,6 @@
 // models/SonarQubeReport.model.ts
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document,Types } from "mongoose";
+import { number } from "zod";
 
 // ---- Sub-schemas ----
 
@@ -62,6 +63,7 @@ const HotspotSchema = new Schema(
 // ---- Main schema ----
 
 export interface ISonarQubeReport extends Document {
+  accountId: Types.ObjectId;
   projectKey: string;
   projectName?: string;
   branch: string;
@@ -83,7 +85,8 @@ export interface ISonarQubeReport extends Document {
 
 const SonarQubeReportSchema = new Schema<ISonarQubeReport>(
   {
-    projectKey: { type: String, required: true, unique: true }, 
+    accountId: { type: Schema.Types.ObjectId ,ref:"User",required:true},
+    projectKey: { type: String, required: true, unique: true },
     projectName: String,
     branch: { type: String, default: "main", index: true },
     taskId: String,
