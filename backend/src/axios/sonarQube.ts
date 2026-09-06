@@ -24,6 +24,10 @@ export async function fetchSonarHotspots(projectKey: string, branch: string) {
   try{
   const response = await axios.get(`${SONARQUBE}/api/hotspots/search`, {
     params: { projectKey, branch, ps: 500 },
+    auth: {
+    username: SONAR_TOKEN as string,
+    password: '',
+    }
   });
   return response.data.hotspots;
 }
