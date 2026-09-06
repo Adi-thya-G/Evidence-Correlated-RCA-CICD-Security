@@ -74,7 +74,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
  await SonarQubeReport.findByIdAndUpdate({
   projectKey
  },{
-      projectKey: projectKey,
+      projectKey: String(projectKey),
       projectName: payload.project.name,
       branch,
       taskId: payload.taskId,
