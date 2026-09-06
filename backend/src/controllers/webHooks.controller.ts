@@ -71,7 +71,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
     fetchSonarIssues(projectKey, branch),
     fetchSonarHotspots(projectKey, branch),
   ]);
- await SonarQubeReport.findByIdAndUpdate({
+ await SonarQubeReport.findOneAndUpdate({
   projectKey
  },{
       projectKey: String(projectKey),
