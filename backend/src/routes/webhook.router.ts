@@ -8,7 +8,7 @@ import { projectKey } from "@utils/SonarQube";
 
 // webhooks router we should use only post method not get method
 const router =Router()
-router.post("/github", express.raw({ type: 'application/json' }),webhookLimiter,webHookHandler)
+router.post("/github",webhookLimiter, express.raw({ type: 'application/json' }),webHookHandler)
 router.post("/sonarqube",express.json(),webhookLimiter,async(req,res)=>{
   const payload = req.body;
   res.status(200).send('OK'); // ack fast, process async — remember the 10s SonarQube timeout

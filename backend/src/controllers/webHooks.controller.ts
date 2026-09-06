@@ -9,6 +9,7 @@ import {runSonarQubeScanner,projectKey} from "@utils/SonarQube"
 
 export const webHookHandler=asyncHandler(async(req,res,next)=>{
   
+console.log("webHookHandler called with body:", req.body);
   
 
  const signature = req.headers['x-hub-signature-256'] as string;
