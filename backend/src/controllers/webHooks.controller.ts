@@ -105,7 +105,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
     },{upsert:true,new:true});
 
 
- console.log(report)
+ console.log(report.accountId)
 
   })
 //      if (commitSha) {
