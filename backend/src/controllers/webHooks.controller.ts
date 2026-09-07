@@ -108,30 +108,33 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
  console.log(report.accountId)
 
 
-     if (commitSha) {
-        console.log(projectKey,)
+    if (commitSha) {
+  const accountId = report.accountId;
+  if (!accountId) {
+    console.error(`No accountId found on SonarQubeReport for project ${projectKey} — skipping history write`);
+  } else {
     await SonarAnalysisHistory.findOneAndUpdate(
-  { projectKey, branch, commitSha },          // match on commit identity
-  {
-    $set: {
-      analysisId:payload,
-      issueKeys,
-      analysedAt,
-      qualityGateStatus: payload.qualityGate?.status,
-      totalIssues: issues.length,
-      totalHotspots: hotspots.length,
-    },
-    $setOnInsert: {
-      accountId:report.accountId,
-      projectKey,
-      branch,
-      commitSha,
-    },
-  },
-  { upsert: true, new: true }
-);
+      { projectKey, branch, commitSha },
+      {
+        $set: {
+          analysisId: payload.taskId,
+          issueKeys: issues.map((i: any) => i.key),
+          analysedAt,
+          qualityGateStatus: payload.qualityGate?.status,
+          totalIssues: issues.length,
+          totalHotspots: hotspots.length,
+        },
+        $setOnInsert: {
+          accountId,
+          projectKey,
+          branch,
+          commitSha,
+        },
+      },
+      { upsert: true, new: true }
+    );
   }
-
+}
     })
    
 
