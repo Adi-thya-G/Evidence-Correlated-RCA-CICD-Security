@@ -80,7 +80,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
   const branch = payload.branch?.name ?? "main";
   const commitSha = payload.revision;              // ← Sonar sends this IF you pass sonar.scm.revision at scan time
   const analysedAt = payload.analysedAt ? new Date(payload.analysedAt) : new Date();
-  console.log(payload)
+
 
   const [issues, hotspots] = await Promise.all([
     fetchSonarIssues(projectKey, branch),
@@ -113,7 +113,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
 //   { projectKey, branch, commitSha },          // match on commit identity
 //   {
 //     $set: {
-//       ,
+//       analysisId,
 //       issueKeys,
 //       analysedAt,
 //       qualityGateStatus: payload.qualityGate?.status,
@@ -131,7 +131,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
 // );
 //   }
    
-  console.log(hotspots)
+  console.log(hotspots,commitSha)
 
 });
 
