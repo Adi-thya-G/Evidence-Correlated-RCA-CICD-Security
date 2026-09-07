@@ -86,7 +86,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
     fetchSonarIssues(projectKey, branch),
     fetchSonarHotspots(projectKey, branch),
   ]);
- await SonarQubeReport.findOneAndUpdate({
+ const report=await SonarQubeReport.findOneAndUpdate({
   projectKey
  },{
       projectKey: String(projectKey),
@@ -104,7 +104,8 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
       rawPayload: payload,
     },{upsert:true,new:true});
 
-  await SonarAnalysisHistory.insertOne({
+
+ console.log(report)
 
   })
 //      if (commitSha) {
@@ -131,7 +132,5 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
 // );
 //   }
    
-  console.log(hotspots,commitSha)
 
-});
 

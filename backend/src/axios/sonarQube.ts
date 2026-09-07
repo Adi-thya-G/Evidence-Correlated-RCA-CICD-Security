@@ -32,7 +32,6 @@ export async function fetchSonarHotspots(projectKey: string, branch: string) {
   return response.data.hotspots;
 }
 catch(err){
-  console.error(`Error fetching SonarQube hotspots for project ${projectKey} on branch ${branch}:`, err);
   throw new Error(`Error fetching SonarQube hotspots: ${err}`);
 }
 }
