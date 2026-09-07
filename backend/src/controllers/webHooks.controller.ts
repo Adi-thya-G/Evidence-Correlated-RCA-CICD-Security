@@ -80,7 +80,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
   const branch = payload.branch?.name ?? "main";
   const commitSha = payload.revision;              // ← Sonar sends this IF you pass sonar.scm.revision at scan time
   const analysedAt = payload.analysedAt ? new Date(payload.analysedAt) : new Date();
-
+  console.log(payload)
 
   const [issues, hotspots] = await Promise.all([
     fetchSonarIssues(projectKey, branch),
@@ -107,26 +107,29 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
   await SonarAnalysisHistory.insertOne({
 
   })
-     if (commitSha) {
-    await SonarAnalysisHistory.findOneAndUpdate(
-      { projectKey, analysisId: payload.taskId },     // idempotent on retries/duplicate webhooks
-      {
-        $setOnInsert: {
-          accountId: /* look up same way webHookHandler does, via project's linked account */
-          projectKey,
-          branch,
-          analysisId: payload.taskId,
-          commitSha,
-          qualityGateStatus: payload.qualityGate?.status,
-          totalIssues: issues.length,
-          totalHotspots: hotspots.length,
-          issueKeys: issues.map((i: any) => i.key),
-          analysedAt,
-        },
-      },
-      { upsert: true }
-    );
-  }
+//      if (commitSha) {
+//         console.log(projectKey,)
+//     await SonarAnalysisHistory.findOneAndUpdate(
+//   { projectKey, branch, commitSha },          // match on commit identity
+//   {
+//     $set: {
+//       ,
+//       issueKeys,
+//       analysedAt,
+//       qualityGateStatus: payload.qualityGate?.status,
+//       totalIssues: issues.length,
+//       totalHotspots: hotspots.length,
+//     },
+//     $setOnInsert: {
+//       accountId,
+//       projectKey,
+//       branch,
+//       commitSha,
+//     },
+//   },
+//   { upsert: true, new: true }
+// );
+//   }
    
   console.log(hotspots)
 
