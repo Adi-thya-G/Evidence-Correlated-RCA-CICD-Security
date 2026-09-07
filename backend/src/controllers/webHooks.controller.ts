@@ -6,6 +6,7 @@ import { handlePushEvent } from "@webHooks/handlePushEvent";
 import { runSonarQubeScanner, projectKey } from "@utils/SonarQube";
 import { fetchSonarIssues, fetchSonarHotspots } from "@axios/sonarQube";
 import {SonarQubeReport} from "@modules/SonarQubeReport";
+import {SonarAnalysisHistory} from "@modules/SonarQubeHistory"
 import { User } from "@modules/User";
 import mongoose from "mongoose";
 export const webHookHandler = asyncHandler(async (req, res) => {
@@ -73,9 +74,13 @@ export const webHookHandler = asyncHandler(async (req, res) => {
 export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
   const payload = req.body;
   res.status(200).send("Ok");
+
   if (payload.status !== "SUCCESS") return;
   const projectKey = payload.project.key;
   const branch = payload.branch?.name ?? "main";
+  const commitSha = payload.revision;              // ← Sonar sends this IF you pass sonar.scm.revision at scan time
+  const analysedAt = payload.analysedAt ? new Date(payload.analysedAt) : new Date();
+
 
   const [issues, hotspots] = await Promise.all([
     fetchSonarIssues(projectKey, branch),
@@ -98,6 +103,30 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
       analysedAt: payload.analysedAt ? new Date(payload.analysedAt) : new Date(),
       rawPayload: payload,
     },{upsert:true,new:true});
+
+  await SonarAnalysisHistory.insertOne({
+
+  })
+     if (commitSha) {
+    await SonarAnalysisHistory.findOneAndUpdate(
+      { projectKey, analysisId: payload.taskId },     // idempotent on retries/duplicate webhooks
+      {
+        $setOnInsert: {
+          accountId: /* look up same way webHookHandler does, via project's linked account */
+          projectKey,
+          branch,
+          analysisId: payload.taskId,
+          commitSha,
+          qualityGateStatus: payload.qualityGate?.status,
+          totalIssues: issues.length,
+          totalHotspots: hotspots.length,
+          issueKeys: issues.map((i: any) => i.key),
+          analysedAt,
+        },
+      },
+      { upsert: true }
+    );
+  }
    
   console.log(hotspots)
 

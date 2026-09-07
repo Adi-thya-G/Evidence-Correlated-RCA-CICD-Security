@@ -13,7 +13,9 @@
       "@utils/*": ["./src/utils/*"],
       "@types/*": ["./src/types/*"],
       "@webHooks/*": ["./src/webHooks/*"],
-      "@axios/*":["./src/axios/*"]
+      "@axios/*":["./src/axios/*"],
+      "@controllers/*":["./src/controllers/*"],
+      "@routes/*":["./src/routes/*"]
     },
     "strict": true,
     "esModuleInterop": true,

@@ -100,6 +100,7 @@ export const callBackUrl = asyncHandler(async (req, res) => {
   );
  
   // Session token — this is what the client uses going forward, not GitHub's token.
+    console.log(user)
   const sessionToken = Jwt.sign(
     { userId: user._id.toString(), githubId: user.githubId, login: user.login },
     env.JWT_SECRET,
