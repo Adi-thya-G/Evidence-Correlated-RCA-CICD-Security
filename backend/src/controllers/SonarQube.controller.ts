@@ -4,15 +4,75 @@ import ApiResponse from "@utils/ApiResponse"
 import {fetchSonarSnippet} from "@axios/sonarSource"
 import ApiError from "@utils/ApiError";
 
-export const getSonarQubeReport = asyncHandler(async (req, res) => {
+import mongoose from "mongoose";
+
+interface QueryParmsReport extends Request{
+  projectKey:string,
+  page:number,
+  page_size:number
+}
+
+export const getSonarQubeReport = asyncHandler(async (req,res) => {
   const userId=req.user?.userId;
-  const reports=await SonarQubeReport.find({accountId:userId}).lean();
-  reports[0]?.issues?.sort((a, b) => {
-    if(a?.severity < b?.severity) return -1;
-    if(a?.severity > b?.severity) return 1;
-    return 0;
-  });
-  console.log(reports);
+  const {projectKey,page,page_size}=req?.query as QueryParmsReport??{}
+  if(!projectKey){
+       throw new ApiError(404,"project key not found","please provide project key")
+  }
+  if(!page){
+    throw new ApiError(404,"page ","page is refred to start of page not found")
+  }
+  if(!page_size){
+    throw new ApiError(404,"page size not defined","page size required ")
+  }
+
+  const skip=(page-1)*page_size;
+
+
+  const [reports] = await SonarQubeReport.aggregate([
+  { $match: { accountId: new mongoose.Types.ObjectId(userId), projectKey } },
+  {
+    $addFields: {
+      issues: {
+        $map: {
+          input: "$issues",
+          as: "i",
+          in: {
+            $mergeObjects: [
+              "$$i",
+              {
+                sortRank: {
+                  $switch: {
+                    branches: [
+                      { case: { $eq: ["$$i.severity", "BLOCKER"] }, then: 5 },
+                      { case: { $eq: ["$$i.severity", "CRITICAL"] }, then: 4 },
+                      { case: { $eq: ["$$i.severity", "MAJOR"] }, then: 3 },
+                      { case: { $eq: ["$$i.severity", "MINOR"] }, then: 2 },
+                      { case: { $eq: ["$$i.severity", "INFO"] }, then: 1 },
+                    ],
+                    default: 0,
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+    },
+  },
+  {
+    $project: {
+      projectKey: 1,
+      totalIssues: { $size: "$issues" },
+      issues: {
+        $slice: [
+          { $sortArray: { input: "$issues", sortBy: { sortRank: -1 } } }, // -1 = highest severity first
+          skip,
+          Number(page_size),
+        ],
+      },
+    },
+  },
+]);
   new ApiResponse(200, "SonarQube reports fetched successfully", reports).send(res);
 });
 

@@ -9,6 +9,8 @@ import {SonarQubeReport} from "@modules/SonarQubeReport";
 import {SonarAnalysisHistory} from "@modules/SonarQubeHistory"
 import { User } from "@modules/User";
 import mongoose from "mongoose";
+
+
 export const webHookHandler = asyncHandler(async (req, res) => {
   const signature = req.headers["x-hub-signature-256"] as string;
   const expected =
@@ -62,7 +64,9 @@ export const webHookHandler = asyncHandler(async (req, res) => {
     console.log(ownerId);
     const user=await User.findOne({githubId:ownerId},{_id:1});
     console.log(user)
-    const up=await SonarQubeReport.findOneAndUpdate({projectKey:key},{accountId:user?._id as mongoose.Types.ObjectId},{
+    const up=await SonarQubeReport.findOneAndUpdate({projectKey:key},{accountId:user?._id as mongoose.Types.ObjectId,
+      repo_id: payload?.repository?.id,
+    },{
       upsert: true, new: true
     });
     console.log(up)
@@ -117,6 +121,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
       { projectKey, branch, commitSha },
       {
         $set: {
+          repo_id:report.repo_id,
           analysisId: payload.taskId,
           issueKeys: issues.map((i: any) => i.key),
           analysedAt,

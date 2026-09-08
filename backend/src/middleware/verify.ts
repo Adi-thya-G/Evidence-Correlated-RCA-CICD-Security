@@ -9,7 +9,6 @@ export const verifyToken = asyncHandler(async (req, res, next) => {
   const { session_token } = req.cookies;
   if (!session_token)
     next(new ApiError(404, "token error", "session token not found"));
-  console.log(session_token);
   const decode = JWT.verify(session_token, env.JWT_SECRET) as {
     userId: Types.ObjectId;
     githubId: number;

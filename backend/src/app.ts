@@ -3,7 +3,7 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet'
 import router from './routes/index.router';
 import webHookRouter from './routes/webhook.router'
-
+import cors from 'cors'
 const app=express();
 
 app.set("trust proxy", 1);
@@ -14,6 +14,10 @@ app.use(helmet())
 // we define web router before the express.json middleware because webhooks give data stream form so when use middleware express.json then middleware store value and read value but data only read once so that we have keep app.use()
 app.use('/api/v1/webhooks',webHookRouter)
 
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials:true
+}))
 // Middleware to parse JSON and URL-encoded data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }))

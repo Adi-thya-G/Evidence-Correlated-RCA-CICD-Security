@@ -124,7 +124,7 @@ export const callBackUrl = asyncHandler(async (req, res) => {
   }
  
   // Already installed — go straight to the app.
-  return res.redirect(`http://localhost:${env.PORT}`);
+  return res.redirect(`http://localhost:${5173}`);
 });
  
 
@@ -187,8 +187,11 @@ export const authMe=asyncHandler(async(req,res,next)=>{
     return new ApiError(404,"userId,githubId","token not found")
   }
   const user =await User.findOne({_id:userId ,githubId:githubId},{_id:1,displayName:1,login:1,avatarUrl:1,role:1,installationId:1,installedAt:1,loginCount:1,lastLoginAt:1,email:1});
+  console.log(user,"me")
   if(!user)
      return new ApiError(404,"user not found","user is not found in database")
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Pragma', 'no-cache');
   return new ApiResponse(200,"user profile fetched successfuly",user).send(res);
 
 })

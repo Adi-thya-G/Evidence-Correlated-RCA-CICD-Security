@@ -10,6 +10,6 @@ router.get("/github/app-callback",app_callback)
 router.get("/logout",verifyToken,logout)
 
 // get data for dashboard
-router.get("/auth/me",verifyToken,authMe)
+router.get("/me",verifyToken,authMe)
 
 export default router

@@ -8,7 +8,7 @@ function Finding() {
        <div className='flex gap-4'>
       {
         array.map((ele,index)=>(
-          <div className={` p-2 px-3  w-max ${active==index?"bg-black text-white font-semibold":"bg-mauve-200 text-gray-700"}  text-[12px] rounded-2xl flex flex-row  gap-2 font-mono cursor-pointer `} onClick={()=>setActive(index)}>
+          <div key={index} className={` p-2 px-3  w-max ${active==index?"bg-black text-white font-semibold":"bg-mauve-200 text-gray-700"}  text-[12px] rounded-2xl flex flex-row  gap-2 font-mono cursor-pointer `} onClick={()=>setActive(index)}>
         <span>{ele}</span>
      (128)
       </div>

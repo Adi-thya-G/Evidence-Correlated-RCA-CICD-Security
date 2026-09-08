@@ -66,6 +66,7 @@ export interface ISonarQubeReport extends Document {
   accountId: Types.ObjectId;
   projectKey: string;
   projectName?: string;
+  repo_id:number;
   branch: string;
   taskId?: string;
   analysisId?: string;
@@ -88,6 +89,7 @@ const SonarQubeReportSchema = new Schema<ISonarQubeReport>(
     accountId: { type: Schema.Types.ObjectId ,ref:"User",required:true},
     projectKey: { type: String, required: true, unique: true },
     projectName: String,
+    repo_id:{type:Number,required:[true,"repo id is required"]},
     branch: { type: String, default: "main", index: true },
     taskId: String,
     analysisId: String,

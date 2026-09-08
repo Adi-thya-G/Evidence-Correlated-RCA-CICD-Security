@@ -3,6 +3,7 @@ import mongoose,{Schema,Types,Document} from "mongoose";
 export interface ISonarAnalysisHistory extends Document{
   accountId:Types.ObjectId,
   projectKey:string,
+  repo_id:number,
   branch:string,
   analysisId:string,
   commitSha:string,
@@ -16,6 +17,7 @@ export interface ISonarAnalysisHistory extends Document{
 const SonarAnalysisHistorySchema = new Schema<ISonarAnalysisHistory>({
   accountId: { type: Schema.Types.ObjectId, ref: "User", required: true },
   projectKey: { type: String, required: true, index: true },
+  repo_id:{type:Number,required:[true,"repo id required"]},
   branch: { type: String, default: "main" },
   analysisId: { type: String, required: true },
   commitSha: { type: String, required: true, index: true },

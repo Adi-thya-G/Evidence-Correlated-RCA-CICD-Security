@@ -2,6 +2,7 @@ import React from 'react'
 import { IoIosArrowRoundDown } from "react-icons/io";
 import { MdOutlineKeyboardArrowRight } from "react-icons/md";
 function Dashboard() {
+  console.log("DASHBOARD")
   return (
 
   <div className='  p-5 flex flex-col gap-4 py-6 '>
