@@ -37,7 +37,6 @@ const { MongoClient, ObjectId } = require("mongodb");
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017";
 // Point this at the SAME database your SonarQubeReport model uses.
 const DB_NAME = process.env.MONGO_DB_NAME || "evidence-rca";
-
 const SUMMARY_COLLECTION = process.env.MONGO_SUMMARY_COLLECTION || "securityscanreports";
 const SEMGREP_COLLECTION = process.env.MONGO_SEMGREP_COLLECTION || "semgrepfindings";
 const TRIVY_COLLECTION = process.env.MONGO_TRIVY_COLLECTION || "trivyfindings";
