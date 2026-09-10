@@ -1,4 +1,4 @@
-version: "3.9"
+
 
 # Evidence-Correlated RCA — local dev stack
 # Pinned versions everywhere so the environment is reproducible across machines.
@@ -10,13 +10,13 @@ services:
   # ---------------------------------------------------------------------
   backend:
     build:
-      context: ./packages/backend
+      context: .
       dockerfile: Dockerfile
     container_name: rca-backend
     ports:
       - "4000:4000"
     env_file:
-      - ./packages/backend/.env
+      - ./.env.local
     environment:
       - MONGODB_URI=mongodb://mongo:27017/evidence-rca
       - VECTOR_DB_URL=http://qdrant:6333
