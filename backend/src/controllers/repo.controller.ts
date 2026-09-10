@@ -3,6 +3,7 @@ import { Installation } from "@modules/Installation";
 import ApiError from "@utils/ApiError";
 import { SonarQubeReport } from "@modules/SonarQubeReport";
 import ApiResponse from "@utils/ApiResponse";
+import { Request } from "express";
 
 
 interface repoList{
@@ -45,4 +46,14 @@ export const getRepo=asyncHandler(async(req,res,next)=>{
 
   return new ApiResponse(200,"repo list is successfuly fetched",response).send(res)
 
+})
+
+
+
+export const getRepoById=asyncHandler(async(req,res,next)=>{
+  const {id}=req.params??null
+  if(!id ||id==null){
+    throw new ApiError(404,"repo_id ","for getting repository info repo id is missing")
+  }
+  
 })

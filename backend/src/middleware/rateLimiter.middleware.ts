@@ -17,7 +17,7 @@ function keyGenerator(req: Request): string {
 
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res, next) => {

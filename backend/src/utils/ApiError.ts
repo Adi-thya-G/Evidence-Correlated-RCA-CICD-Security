@@ -1,4 +1,4 @@
-
+import { Response } from "simple-git";
 class ApiError extends Error {
   status: number;
   code: string;
@@ -23,6 +23,7 @@ class ApiError extends Error {
     // Keeps stack trace clean (excludes constructor frame) — V8 only, safe to guard
     Error.captureStackTrace?.(this, this.constructor);
   }
+   
 }
 
 export default ApiError ;

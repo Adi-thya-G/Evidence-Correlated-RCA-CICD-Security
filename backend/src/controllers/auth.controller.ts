@@ -100,7 +100,6 @@ export const callBackUrl = asyncHandler(async (req, res) => {
   );
  
   // Session token — this is what the client uses going forward, not GitHub's token.
-    console.log(user)
   const sessionToken = Jwt.sign(
     { userId: user._id.toString(), githubId: user.githubId, login: user.login },
     env.JWT_SECRET,
@@ -164,7 +163,7 @@ export const app_callback=asyncHandler(async(req,res)=>{
     { new: true }
   );
 
-  res.send(installation_id)
+  return res.redirect(`http://localhost:${5173}`);
 })
 
 export const logout=asyncHandler(async(req,res,next)=>{
@@ -188,8 +187,13 @@ export const authMe=asyncHandler(async(req,res,next)=>{
   }
   const user =await User.findOne({_id:userId ,githubId:githubId},{_id:1,displayName:1,login:1,avatarUrl:1,role:1,installationId:1,installedAt:1,loginCount:1,lastLoginAt:1,email:1});
   console.log(user,"me")
-  if(!user)
-     return new ApiError(404,"user not found","user is not found in database")
+  if(!user||user==null)
+   {
+      res.cookie("session_token","")
+      res.redirect("http://localhost:5173/login")
+     new ApiError(404,"user not found","user is not found in database")
+     
+   }
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.set('Pragma', 'no-cache');
   return new ApiResponse(200,"user profile fetched successfuly",user).send(res);

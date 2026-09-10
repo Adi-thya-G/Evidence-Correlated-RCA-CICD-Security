@@ -14,6 +14,8 @@ import DangerZone from "@root/components/DangerZone.tsx"
 import Finding from '@/pages/Finding.tsx';
 import Login from '@/pages/Login.tsx'
 import LoginProtectedRoute from '@/utils/LoginProtectedRoute.tsx';
+import General from "@root/components/General.tsx"
+import SonarQube from './pages/SonarQube.tsx';
 const router=createBrowserRouter([
   {
     path:"/login",
@@ -25,7 +27,7 @@ const router=createBrowserRouter([
   },
   {
   path:"/",
-  element:<App/>,
+  element: <App/>,
   children:[
    {
     element:<ProtectedRoute/>,
@@ -42,9 +44,19 @@ const router=createBrowserRouter([
        element:<Finding/>
       },
       {
+        path:"sonarqube",
+        element:<SonarQube/>
+      },
+      {
        path:"settings",
        element:<Setting/>,
        children:[
+         {
+          index:true, element:<Navigate to={"general"} replace={true}/>
+        },
+         {
+          path:"general",element:<General/>
+        },
         {
           path:"correlation",element:<Correlation/>
         },
@@ -53,7 +65,9 @@ const router=createBrowserRouter([
         },
         {
           path:"danger-zone",element:<DangerZone/>
-        }
+        },
+       
+       
        ]
       }
     ]

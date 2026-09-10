@@ -32,7 +32,7 @@ const initialState: IUser = {
   email: null,
 };
 
-export const useUserStore = create<IUserStore>((set) => ({
+export const useUserStore = create<IUserStore>((set,get) => ({
   ...initialState,
   isLoading: true,
   isAuthenticated: false,
@@ -41,14 +41,15 @@ export const useUserStore = create<IUserStore>((set) => ({
     set({ isLoading: true });
     try {
       const { data } = await api.get("/auth/me");
-
+     
       const user = data.data; // adjust to your ApiResponse shape
-
       set({
         ...user,
         isAuthenticated: true,
         isLoading: false,
+       
       });
+      return
     } catch {
       set({
         ...initialState,

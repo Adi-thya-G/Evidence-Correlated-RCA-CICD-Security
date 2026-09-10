@@ -4,7 +4,7 @@ import Toggle from './Toggle'
 function Notification() {
   return (
     <div className='p-2 flex flex-col gap-5 w-full '>
-      <h2 className='font-serif text-[16px]  setting-font'>Delivery channels</h2>
+      <h2 className='font-serif text-[16px]  setting-font  font-[520]'>Delivery channels</h2>
       <div className='flex flex-col gap-2 '>
         <div className='relative w- flex flex-col gap-1  border-b border-gray-300 pb-5'>
          <h2 className='text-sm font-semibold '>Slack</h2>

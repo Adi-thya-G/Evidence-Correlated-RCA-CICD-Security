@@ -10,7 +10,7 @@ const api=axios.create({
 
 api.interceptors.response.use((response)=>response,(error:AxiosError)=>{
   if(error.response?.status==401){
-    if(location.pathname!="login"){
+    if(location.pathname!="/login"){
       window.location.href="/login"
     }
   }
