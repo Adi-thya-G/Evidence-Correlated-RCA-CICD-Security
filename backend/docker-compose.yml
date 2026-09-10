@@ -10,13 +10,13 @@ services:
   # ---------------------------------------------------------------------
   backend:
     build:
-      context: ./packages/backend
+      context: .
       dockerfile: Dockerfile
     container_name: rca-backend
     ports:
       - "4000:4000"
     env_file:
-      - ./packages/backend/.env
+      - ./.env.local
     environment:
       - MONGODB_URI=mongodb://mongo:27017/evidence-rca
       - VECTOR_DB_URL=http://qdrant:6333
@@ -27,8 +27,8 @@ services:
       - qdrant
       - sonarqube
     volumes:
-      - ./packages/backend/src:/app/src
-      - ./:/repo:ro                # repo mounted read-only for git blame/diff
+      - ./src:/app/src
+      - ../:/repo:ro                # repo mounted read-only for git blame/diff
     networks:
       - rca-net
 
@@ -121,7 +121,7 @@ services:
     profiles: ["scan"]     # excluded from `docker compose up`, run on demand
     working_dir: /src
     volumes:
-      - ./:/src:ro
+      - ../:/src:ro
     command: ["semgrep", "--config=auto", "--json", "--output=/src/scan-results/semgrep.json"]
     networks:
       - rca-net
@@ -136,7 +136,7 @@ services:
     profiles: ["scan"]     # excluded from `docker compose up`, run on demand
     working_dir: /repo
     volumes:
-      - ./:/repo:ro
+      - ../:/repo:ro
       - ./scan-results:/scan-results
     command: ["detect", "--source=/repo", "--report-format=json", "--report-path=/scan-results/gitleaks.json", "--no-git"]
     networks:
