@@ -50,7 +50,7 @@ function SonarQube() {
           <div className='flex flex-col gap-0.5'>
             <h2 className='text-[14px] font-semibold font-serif'>Copying recursively might inadvertently add sensitive data to the container</h2>
             <p className='text-[12px] font-serif text-gray-500'>vulnerability
-backend/Dockerfile:12
+backend/Dockerfile :12
 ·
 20min effort</p>
           </div>
