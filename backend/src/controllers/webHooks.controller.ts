@@ -85,6 +85,7 @@ export const webHookHandler = asyncHandler(async (req, res) => {
    repo_id: repoId,
     projectKey: key,
   branch: branch ?? "main",
+  scriptPath:" D:\Evidence-Correlated-RCA-CICD-Security\backend\scripts\scan-and-store.js"
 });
   }
 
