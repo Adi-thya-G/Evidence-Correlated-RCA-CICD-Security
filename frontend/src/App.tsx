@@ -33,6 +33,7 @@ function App() {
   // Set selected repo when default repo arrives here setting selected repo as default repos
   useEffect(() => {
     if (defualt) {
+      console.log(defualt)
       setSelectedRepo(defualt.name);
     }
   }, [defualt]);

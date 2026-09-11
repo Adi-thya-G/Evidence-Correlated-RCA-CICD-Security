@@ -40,7 +40,7 @@ export const useRepoStore = create<Irepo>((set, get) => ({
      console.log(data)
     set({
       repository: repos,
-      default: repos.find((ele: repoList) => ele.default === true) ?? null,
+      default: repos.find((ele: repoList) => ele.default === true) ?? repos[0],
     });
   },
   update: async (repo: repoList) => {

@@ -80,12 +80,12 @@ export const webHookHandler = asyncHandler(async (req, res) => {
     const userId=user?._id;
     const repoId= payload.repository.id
     const branch=payload.repository.branch
-    runSecurityScan(response, {
-   accountId: String(userId),
-   repo_id: repoId,
-    projectKey: key,
+ runSecurityScan(response, {
+  accountId: String(userId),
+  repo_id: repoId,
+  projectKey: key,
   branch: branch ?? "main",
-  scriptPath:" D:/Evidence-Correlated-RCA-CICD-Security/backend/scripts/scan-and-store.js"
+  scriptPath: "D:/Evidence-Correlated-RCA-CICD-Security/backend/scripts/scan-and-store.js"
 });
   }
 
