@@ -76,6 +76,7 @@ export const webHookHandler = asyncHandler(async (req, res) => {
         new: true,
       },
     );
+    console.log(sonarReport)
 //     const userId=user?._id;
 //     const repoId= payload.repository.id
 //     const branch=payload.repository.branch
