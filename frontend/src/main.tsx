@@ -29,9 +29,9 @@ const router=createBrowserRouter([
   path:"/",
   element: <App/>,
   children:[
-   {
-    element:<ProtectedRoute/>,
-    children:[
+  //  {
+  //   element:<ProtectedRoute/>,
+  //   children:[
       {
         index:true, element:<Navigate to={"/overview"} replace/>
       },
@@ -68,8 +68,8 @@ const router=createBrowserRouter([
         },
        
        
-       ]
-      }
+      //  ]
+      // }
     ]
    }
   ]

@@ -80,6 +80,7 @@ export default function Login() {
     setButtonLabel("Redirecting…");
     // Full page redirect — must navigate the browser itself, not fetch/axios,
     // since GitHub's OAuth consent screen requires a real navigation.
+   
     window.location.href = `${import.meta.env.VITE_API_BASE_URL}/api/v1/auth/github`;
     
   };
