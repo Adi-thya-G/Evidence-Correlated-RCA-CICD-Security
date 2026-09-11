@@ -16,13 +16,15 @@ services:
     env_file:
       - ./.env.local
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/evidence-rca
+      # host-installed MongoDB — not dockerized. host.docker.internal lets the
+      # container reach services running directly on your Windows machine.
+      - MONGODB_URI=mongodb://host.docker.internal:27017/evidence-rca
       - VECTOR_DB_URL=http://qdrant:6333
       - SONARQUBE_URL=http://sonarqube:9000
       - TRIVY_SERVER_URL=http://trivy:4954
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
-      mongo:
-        condition: service_started
       qdrant:
         condition: service_started
       sonarqube:
@@ -30,21 +32,6 @@ services:
     volumes:
       - ./packages/backend/src:/app/src
       - ./:/repo:ro                # repo mounted read-only for git blame/diff
-    networks:
-      - rca-net
-
-  # ---------------------------------------------------------------------
-  # MongoDB — findings, correlations, results
-  # ---------------------------------------------------------------------
-  mongo:
-    image: mongo:7.0.12
-    container_name: rca-mongo
-    restart: unless-stopped
-    stop_grace_period: 30s
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
     networks:
       - rca-net
 
@@ -166,7 +153,6 @@ networks:
     driver: bridge
 
 volumes:
-  mongo-data:
   qdrant-data:
   sonar-db-data:
   sonar-data:
