@@ -76,16 +76,16 @@ export const webHookHandler = asyncHandler(async (req, res) => {
         new: true,
       },
     );
-    console.log(sonarReport)
-//     const userId=user?._id;
-//     const repoId= payload.repository.id
-//     const branch=payload.repository.branch
-//     runSecurityScan(response, {
-//    accountId: String(userId),
-//    repo_id: repoId,
-//     projectKey: key,
-//   branch: branch ?? "main",
-// });
+  
+    const userId=user?._id;
+    const repoId= payload.repository.id
+    const branch=payload.repository.branch
+    runSecurityScan(response, {
+   accountId: String(userId),
+   repo_id: repoId,
+    projectKey: key,
+  branch: branch ?? "main",
+});
   }
 
   res.send('0k');
