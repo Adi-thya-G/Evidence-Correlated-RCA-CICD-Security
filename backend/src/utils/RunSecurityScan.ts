@@ -37,7 +37,7 @@ export function runSecurityScan(
     );
   }
 
-  const script = scriptPath || path.join(__dirname, "..", "scripts", "scan-and-store.js");
+  const script = scriptPath || path.join(__dirname, "...", "scripts", "scan-and-store.js");
 
   if (!fs.existsSync(script)) {
     throw new Error(`scan-and-store.js not found at ${script}`);
