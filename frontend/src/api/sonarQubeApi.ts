@@ -1,6 +1,6 @@
 import api from "./axiosInstance";
 
-async function GetSonarQubeReport({
+export async function GetSonarQubeReport({
   projectKey,
   page,
   page_size,
@@ -17,6 +17,7 @@ async function GetSonarQubeReport({
         page_size: page_size,
       },
     });
+
     return data.data;
   } catch (err) {
     throw new Error(`new api error ${err}`);
@@ -29,7 +30,7 @@ interface queryProps {
   context?: number;
 }
 
-async function getSourceCode(query: queryProps) {
+export async function getSourceCode(query: queryProps) {
   try {
     const { data } = await api.get("/sonarqube/sourcecode", {
       params: query,

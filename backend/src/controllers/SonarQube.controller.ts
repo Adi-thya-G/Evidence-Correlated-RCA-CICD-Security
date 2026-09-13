@@ -26,10 +26,11 @@ export const getSonarQubeReport = asyncHandler(async (req,res) => {
   }
 
   const skip=(page-1)*page_size;
+   console.log(projectKey,page,page_size,"hello")
 
 
   const [reports] = await SonarQubeReport.aggregate([
-  { $match: { accountId: new mongoose.Types.ObjectId(userId), projectKey } },
+  { $match: { accountId: new mongoose.Types.ObjectId(userId) ,repo_id:Number(projectKey) } },
   {
     $addFields: {
       issues: {
@@ -73,6 +74,7 @@ export const getSonarQubeReport = asyncHandler(async (req,res) => {
     },
   },
 ]);
+console.log(reports)
   new ApiResponse(200, "SonarQube reports fetched successfully", reports).send(res);
 });
 
@@ -87,6 +89,7 @@ interface queryProps {
 
 export const getSonarQubeCode=asyncHandler(async (req: any, res) => {
   const {key,line,context}=req?.query as queryProps;
+ 
   if(!key)
      throw new ApiError(404,"query key not found","please provide query paramter")
   if(!line){

@@ -16,6 +16,8 @@ import Login from '@/pages/Login.tsx'
 import LoginProtectedRoute from '@/utils/LoginProtectedRoute.tsx';
 import General from "@root/components/General.tsx"
 import SonarQube from './pages/SonarQube.tsx';
+import Trivy from '@/pages/Trivy.tsx';
+import Gitleaks from './pages/Gitleaks.tsx';
 const router=createBrowserRouter([
   {
     path:"/login",
@@ -46,6 +48,14 @@ const router=createBrowserRouter([
       {
         path:"sonarqube",
         element:<SonarQube/>
+      },
+       {
+        path:"trivy",
+        element:<Trivy/>
+      },
+      {
+        path:"gitleaks",
+        element:<Gitleaks/>
       },
       {
        path:"settings",

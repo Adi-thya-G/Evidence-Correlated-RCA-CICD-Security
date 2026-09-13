@@ -23,7 +23,7 @@ const color:Record<string,{
 
 function SeverityCard({title}:{title:string}) {
   return (
-    <div className={`${color[title].className}   flex justify-center place-items-center px-1 py-2  font-serif text-[12px] rounded-md`} >
+    <div className={`${color[title].className}    w-8 h-8 flex justify-center place-items-center  font-serif p-2 text-[10px] rounded-md`} >
       {color[title].label}
     </div>
   )

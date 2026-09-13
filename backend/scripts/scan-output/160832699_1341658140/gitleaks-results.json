@@ -1,0 +1,22 @@
+[
+ {
+  "RuleID": "github-fine-grained-pat",
+  "Description": "Found a GitHub Fine-Grained Personal Access Token, risking unauthorized repository access and code manipulation.",
+  "StartLine": 40,
+  "EndLine": 40,
+  "StartColumn": 2,
+  "EndColumn": 94,
+  "Match": "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",
+  "Secret": "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",
+  "File": ".gitignore",
+  "SymlinkFile": "",
+  "Commit": "",
+  "Entropy": 5.3467517,
+  "Author": "",
+  "Email": "",
+  "Date": "",
+  "Message": "",
+  "Tags": [],
+  "Fingerprint": ".gitignore:github-fine-grained-pat:40"
+ }
+]
