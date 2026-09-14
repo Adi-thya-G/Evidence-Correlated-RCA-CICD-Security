@@ -2,7 +2,7 @@ import { useUserStore } from "@/stores/userAuth";
 import { Icon } from "@iconify/react";
 import { Navigate, NavLink } from "react-router-dom";
 import { IoMdLogOut } from "react-icons/io";
-import { useRepoStore } from "@/stores/repoStore";
+import { useRepoStore } from "../src/stores/repoStore";
 const menuItems = [
   { name: "Overview", icon: "solar:home-2-outline" },
   { name: "Findings", icon: "solar:danger-triangle-outline" },
