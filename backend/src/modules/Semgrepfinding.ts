@@ -1,7 +1,9 @@
 import mongoose, { Schema, Types, Document } from "mongoose";
+import { string } from "zod";
 
 export interface ISemgrepFinding extends Document {
   accountId: Types.ObjectId;
+  findingHash:string,
   repo_id: number;
   projectKey: string;
   branch: string;
@@ -21,6 +23,7 @@ export interface ISemgrepFinding extends Document {
 
 const SemgrepFindingSchema = new Schema<ISemgrepFinding>({
   accountId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  findingHash:{type:String,required:true},
   repo_id: { type: Number, required: [true, "repo id required"] },
   projectKey: { type: String, required: true, index: true },
   branch: { type: String, default: "main" },

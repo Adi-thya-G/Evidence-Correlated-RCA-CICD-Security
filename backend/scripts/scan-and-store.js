@@ -188,6 +188,7 @@ console.log(`Total: ${allFindings.length} findings (scanId=${scanId})`);
 function withLinkFields(f) {
   return {
     ...f,
+    findingHash: findingKey(f),
     accountId,
     repo_id,
     projectKey,

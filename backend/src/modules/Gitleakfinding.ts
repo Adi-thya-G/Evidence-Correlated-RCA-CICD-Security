@@ -2,6 +2,7 @@ import mongoose, { Schema, Types, Document } from "mongoose";
 
 export interface IGitleaksFinding extends Document {
   accountId: Types.ObjectId;
+  findingHash:string,
   repo_id: number;
   projectKey: string;
   branch: string;
@@ -23,6 +24,7 @@ export interface IGitleaksFinding extends Document {
 
 const GitleaksFindingSchema = new Schema<IGitleaksFinding>({
   accountId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  findingHash:{type:String,required:true},
   repo_id: { type: Number, required: [true, "repo id required"] },
   projectKey: { type: String, required: true, index: true },
   branch: { type: String, default: "main" },
