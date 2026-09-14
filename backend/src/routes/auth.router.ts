@@ -7,7 +7,7 @@ const router=Router();
 router.get('/github',loginWithGithub)
 router.get('/github/callback',callBackUrl)
 router.get("/github/app-callback",app_callback)
-router.get("/logout",verifyToken,logout)
+router.post("/logout",verifyToken,logout)
 
 // get data for dashboard
 router.get("/me",verifyToken,authMe)

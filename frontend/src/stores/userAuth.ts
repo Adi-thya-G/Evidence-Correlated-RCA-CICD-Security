@@ -59,11 +59,13 @@ export const useUserStore = create<IUserStore>((set,get) => ({
     }
   },
 
-  clearUser: () => {
-    set({
+  clearUser: async() => {
+   await api.post('/auth/logout')
+   set({
       ...initialState,
       isAuthenticated: false,
       isLoading: false,
     });
+    
   },
 }));

@@ -207,8 +207,14 @@ const trivyDocs = trivyFindings.map(withLinkFields);
 //    what's resolved (was there before, gone now — i.e. your fix worked),
 //    and what's unchanged, when comparing against the previous scan.
 // ---------------------------------------------------------------------
+
+// hash function 
 function findingKey(f) {
-  return `${f.tool}::${f.ruleId}::${f.file}::${f.startLine ?? ""}`;
+  const parts =
+    f.tool === "trivy"
+      ? [f.tool, f.ruleId, f.file, f.pkgName ?? ""]
+      : [f.tool, f.ruleId, f.file, String(f.startLine ?? "")];
+  return crypto.createHash("sha256").update(parts.join("|")).digest("hex");
 }
 
 function diffFindings(previousDocs, currentDocs) {

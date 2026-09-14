@@ -1,6 +1,8 @@
 import { useUserStore } from "@/stores/userAuth";
 import { Icon } from "@iconify/react";
-import { NavLink } from "react-router-dom";
+import { Navigate, NavLink } from "react-router-dom";
+import { IoMdLogOut } from "react-icons/io";
+import { useRepoStore } from "@/stores/repoStore";
 const menuItems = [
   { name: "Overview", icon: "solar:home-2-outline" },
   { name: "Findings", icon: "solar:danger-triangle-outline" },
@@ -16,7 +18,8 @@ const menuItems = [
 
 function SideNav() {
 
-  const {isAuthenticated,role,avatarUrl,displayName,login} =useUserStore()
+  const {isAuthenticated,role,avatarUrl,displayName,login,clearUser} =useUserStore()
+  const clearRepo =useRepoStore((s)=>s.clear)
  
   return (
     <div className="w-60 max-md:w-30 h-full flex flex-col  border-r  border-gray-300 shadow-2xl shadow-mist-200  ">
@@ -50,7 +53,7 @@ function SideNav() {
         {
           isAuthenticated&&
           (
-            <div className="w-full flex items-center  gap-3 border-t border-gray-300  px-4 py-4">
+            <div className="w-full flex items-center  gap-3 border-t border-gray-300  px-4 py-4 relative">
             {
               
               avatarUrl 
@@ -65,9 +68,24 @@ function SideNav() {
           </span>)
             }
 
-          <div className="flex flex-col">
+          <div className="flex flex-col ">
             <h2 className="text-sm font-medium leading-tight">{displayName||login}</h2>
             <p className="text-xs text-gray-400 leading-tight">{role}</p>
+            <div className="absolute right-3 group">
+              <div className="absolute -translate-y-1/2 -translate-x-4/3 group-hover:block hidden text-sm p-1 border border-gray-200 rounded-sm shadow shadow-gray-200 bg-white">
+                logout
+              </div>
+              <button className="text-[13px] font-serif font-semibold flex justify-center place-items-center gap-2 border border-gray-200 shadow shadow-gray-300 rounded-xl cursor-pointer hover:bg-red-500 hover:text-white  p-2"
+              onClick={()=>{
+                clearUser()
+                clearRepo()
+                Navigate({to:"/login"})
+              }}
+              title="logout"
+              
+              > <IoMdLogOut size={16} width={10}/></button>
+
+            </div>
           </div>
         </div>
           )
