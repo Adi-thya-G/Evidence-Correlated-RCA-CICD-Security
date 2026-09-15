@@ -15,7 +15,8 @@
       "@webHooks/*": ["./src/webHooks/*"],
       "@axios/*":["./src/axios/*"],
       "@controllers/*":["./src/controllers/*"],
-      "@routes/*":["./src/routes/*"]
+      "@routes/*":["./src/routes/*"],
+      "@kafka/*":["./src/kafka/*"]
     },
     "strict": true,
     "esModuleInterop": true,

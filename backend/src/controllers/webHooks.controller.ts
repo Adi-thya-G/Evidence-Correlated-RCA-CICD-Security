@@ -10,6 +10,7 @@ import { SonarAnalysisHistory } from "@modules/SonarQubeHistory";
 import { User } from "@modules/User";
 import mongoose from "mongoose";
 import {runSecurityScan}from "@utils/RunSecurityScan"
+import { producer } from "@kafka/producer";
 
 export const webHookHandler = asyncHandler(async (req, res) => {
   const signature = req.headers["x-hub-signature-256"] as string;
@@ -86,7 +87,8 @@ export const webHookHandler = asyncHandler(async (req, res) => {
   projectKey: key,
   branch: branch ?? "main",
   scriptPath: "D:/Evidence-Correlated-RCA-CICD-Security/backend/scripts/scan-and-store.js"
-});
+})
+
   }
 
   res.send('0k');
@@ -163,6 +165,25 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
         },
         { upsert: true, new: true },
       );
+      await producer.send({
+        topic: 'raw-findings',
+        messages: [
+          {
+            key: `${report.repo_id}:${commitSha}`,
+            value: JSON.stringify({
+              tool: 'sonarqube',
+              projectKey,
+              branch,
+              commitSha,
+              accountId: String(accountId),
+              repoId: report.repo_id,
+              issues,
+              hotspots,
+              analysedAt,
+            }),
+          },
+        ],
+      });
     }
   }
 });

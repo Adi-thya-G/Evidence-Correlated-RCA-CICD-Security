@@ -49,7 +49,7 @@ function App() {
     <div className="w-full h-screen flex flex-row overflow-y-hidden">
       <SideNav />
 
-      <div className="flex-1 h-full min-w-0 flex flex-col overflow-y-auto">
+      <div className="flex-1 h-full min-w-0 flex flex-col  overflow-y-hidden">
         <header className="w-full min-h-17 border-b border-gray-300 flex items-center justify-between px-3">
           <h2 className="text-xl text-black font-serif font-bold">{header}</h2>
 
@@ -74,9 +74,10 @@ function App() {
           </div>
         </header>
 
-        <div>
+        <div className="overflow-y-auto">
           <Outlet />
         </div>
+       
       </div>
     </div>
   );

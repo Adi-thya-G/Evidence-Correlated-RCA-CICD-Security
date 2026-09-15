@@ -43,19 +43,23 @@ function SonarQube() {
   useEffect(()=>{
     
     if(sourceCode!=null){
-      setIssues(data.issues.filter((ele)=>ele.
+      setIssues(data.issues.filter((ele:any)=>ele?.
 component==sourceCode.key)[0])
 console.log(issues,sourceCode)
     }
 
   },[sourceCode])
- 
+ console.log(data?.issues[0].creationDate,data?.totalIssues
+)
   const [param,setParams]=useState("issues");
 
+
   return (
-    <div className='p-6 flex flex-col gap-7'>
+    <div className='p-6 flex flex-col gap-7 max-h'>
       <div className='w-full grid grid-cols-5 gap-3'>
-        <SonarCard heading='Issues' value='54' description='bugs, vulnerabilities, smells' className=''/>
+        {data?.totalIssues &&<SonarCard heading='Issues' value={data?.totalIssues
+||"_"
+        } description='bugs, vulnerabilities, smells' className=''/>}
          <SonarCard heading='Issues' value='54' description='bugs, vulnerabilities, smells' className=''/>
           <SonarCard heading='Issues' value='54' description='bugs, vulnerabilities, smells' className=''/>
            <SonarCard heading='Issues' value='54' description='bugs, vulnerabilities, smells' className=''/>
