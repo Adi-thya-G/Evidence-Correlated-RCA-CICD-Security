@@ -161,13 +161,14 @@ services:
     restart: unless-stopped
     stop_grace_period: 30s
     ports:
-      - "9092:9092"   # host access (e.g. from local scripts, Kafka UI on host)
-      - "9093:9093"   # controller port
+      - "9092:9092"
+      - "9093:9093"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_LISTENERS: PLAINTEXT://kafka:29092,CONTROLLER://kafka:9093,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
@@ -184,7 +185,6 @@ services:
       start_period: 30s
     networks:
       - rca-net
-
   # Optional but handy — visual topic/message browser at localhost:8080
   kafka-ui:
     image: provectuslabs/kafka-ui:latest

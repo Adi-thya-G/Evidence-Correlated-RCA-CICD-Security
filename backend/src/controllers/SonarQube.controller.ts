@@ -100,4 +100,14 @@ export const getSonarQubeCode=asyncHandler(async (req: any, res) => {
   }
   const snippet=await fetchSonarSnippet(key,line,context)
   new ApiResponse(200, "SonarQube code snippet fetched successfully", snippet).send(res)
+
+})
+
+
+// sumary of repo
+export const getSonarQubeSummary=asyncHandler(async(req,res,next)=>{
+ const {  projectKey} =req.query;
+ if(!projectKey)
+   throw new ApiError(404,"project key ","project key not founded")
+  
 })
