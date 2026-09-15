@@ -5,6 +5,7 @@ import {fetchSonarSnippet} from "@axios/sonarSource"
 import ApiError from "@utils/ApiError";
 
 import mongoose from "mongoose";
+import e from "express";
 
 interface QueryParmsReport extends Request{
   projectKey:string,
@@ -109,5 +110,12 @@ export const getSonarQubeSummary=asyncHandler(async(req,res,next)=>{
  const {  projectKey} =req.query;
  if(!projectKey)
    throw new ApiError(404,"project key ","project key not founded")
-  
+  const report=await SonarQubeReport.findOne({repo_id:projectKey,accountId:req.user?.userId})
+  if(!report){
+
+  }
+  report?.issues.map((ele)=>{
+    
+  })
+
 })
