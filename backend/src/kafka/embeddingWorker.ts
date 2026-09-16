@@ -10,6 +10,7 @@ export async function startEmbeddingWorker() {
     partitionsConsumedConcurrently: 3,
     eachMessage: async ({ message }) => {
       try {
+        
         const key = message.key ? message.key.toString() : null;
         const raw = message.value ? message.value.toString() : null;
 
