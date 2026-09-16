@@ -18,6 +18,7 @@ import General from "@root/components/General.tsx"
 import SonarQube from './pages/SonarQube.tsx';
 import Trivy from '@/pages/Trivy.tsx';
 import Gitleaks from './pages/Gitleaks.tsx';
+import NotFoundPage from './pages/NotFoundPage.tsx';
 const router=createBrowserRouter([
   {
     path:"/login",
@@ -84,7 +85,11 @@ const router=createBrowserRouter([
    }
   ]
 
-}])
+},{
+  path: "*",
+  element: <NotFoundPage homeHref="/dashboard" findingsHref="/findings" />,
+}
+])
 createRoot(document.getElementById('root')!).render(
   <RouterProvider router={router}/>
 )

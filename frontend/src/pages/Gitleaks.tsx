@@ -20,6 +20,7 @@ function Gitleaks() {
 
   useEffect(() => {
     if (defaultRepo != null) {
+      setData(null)
       GetGitleaksReport({ repo_id: defaultRepo.repo_id, page, pageSize: 7 }).then(setData);
     }
   }, [defaultRepo, page]);
@@ -37,8 +38,8 @@ function Gitleaks() {
     <div className='p-6 flex flex-col gap-7'>
       <div className='w-full grid grid-cols-3 gap-3'>
         <SonarCard heading='Secrets found' value={data?.totalFindings ?? '—'} description='exposed secrets detected' className='' />
-        <SonarCard heading='Files affected' value={new Set(data?.findings?.map((f: any) => f.file)).size || '—'} description='distinct files with secrets' className='' />
-        <SonarCard heading='Rule types' value={new Set(data?.findings?.map((f: any) => f.ruleId)).size || '—'} description='distinct secret patterns matched' className='' />
+        <SonarCard heading='Files affected' value={ String(new Set(data?.findings?.map((f: any) => f.file)).size )|| '—'} description='distinct files with secrets' className='' />
+        <SonarCard heading='Rule types' value={String(new Set(data?.findings?.map((f: any) => f.ruleId)).size) || '—'} description='distinct secret patterns matched' className='' />
       </div>
 
       <div className='w-full grid grid-cols-[6fr_4fr] gap-6'>

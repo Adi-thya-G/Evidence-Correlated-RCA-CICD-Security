@@ -191,7 +191,6 @@ export const authMe=asyncHandler(async(req,res,next)=>{
    {
       res.cookie("session_token","")
       res.redirect("http://localhost:5173/login")
-     new ApiError(404,"user not found","user is not found in database")
      
    }
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');

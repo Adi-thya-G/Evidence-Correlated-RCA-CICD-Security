@@ -96,7 +96,7 @@ function SonarQubeGrid({
         </div>
       )}
 
-      {filteredIssues.map((ele) => {
+      {filteredIssues?.map((ele) => {
         const [file, ...rest] = String(ele.component).split(':')
         const filePath = rest.length ? rest.join(':') : file
         return (

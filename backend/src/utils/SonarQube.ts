@@ -44,3 +44,19 @@ export const runSonarQubeScanner = async (reportPath: string, projectKey: string
 export const projectKey = async (instanceId: number, repoId: number): Promise<string> => {
   return String(instanceId) + "_" + String(repoId);
 };
+
+export function parseEffortToMinutes(effort?: string): number {
+  if (!effort) return 0;
+  const hoursMatch = effort.match(/(\d+)h/);
+  const minsMatch = effort.match(/(\d+)min/);
+  const hours = hoursMatch ? parseInt(hoursMatch[1], 10) : 0;
+  const mins = minsMatch ? parseInt(minsMatch[1], 10) : 0;
+  return hours * 60 + mins;
+}
+
+export function formatMinutesAsEffortLabel(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  if (hours === 0) return `${mins}m`;
+  return `${hours}h ${mins}m`;
+}

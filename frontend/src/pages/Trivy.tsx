@@ -29,12 +29,14 @@ function Trivy() {
 
 useEffect(() => {
   if (defaultRepo != null) {
+    setSummary(null)
     GetTrivySummary({ repo_id: defaultRepo.repo_id }).then(setSummary);
   }
 }, [defaultRepo]);
 
   useEffect(() => {
     if (defaultRepo != null) {
+      setData(null)
       GetTrivyReport({ repo_id: defaultRepo.repo_id, page: page, pageSize: 7 }).then((res) => {
         setData(res);
         console.log(res);

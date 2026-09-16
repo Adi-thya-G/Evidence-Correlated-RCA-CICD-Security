@@ -41,5 +41,14 @@ export async function getSourceCode(query: queryProps) {
   }
 }
 
+// src/api/sonarQubeApi.ts (add alongside GetSonarQubeReport)
+
+export async function GetSonarQubeSummary(params: { projectKey: string }) {
+  const res = await api.get("/sonarqube/summary", {
+    params: { projectKey: params.projectKey },
+  });
+  return res.data.data; // matches your response shape: { success, message, data: { data: {...} } }
+}
+
 
 //
