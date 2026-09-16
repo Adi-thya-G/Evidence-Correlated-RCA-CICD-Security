@@ -1,11 +1,4 @@
-// embeddingWorker.ts
-import { Kafka,logLevel } from "kafkajs";
-import { json } from "node:stream/consumers";
-export const kafka = new Kafka({
-  clientId: 'rca-backend',
-  brokers: [process.env.KAFKA_BROKER ?? '127.0.0.1:9092'],
-  logLevel: logLevel.WARN,
-});
+import { kafka } from "./client"; // adjust to your actual kafka client import
 
 const consumer = kafka.consumer({ groupId: "embedding-workers" });
 
@@ -14,15 +7,23 @@ export async function startEmbeddingWorker() {
   await consumer.subscribe({ topic: "raw-findings", fromBeginning: false });
 
   await consumer.run({
-    // Process partitions in parallel, messages within a partition in order
     partitionsConsumedConcurrently: 3,
     eachMessage: async ({ message }) => {
-      const payload= JSON.stringify(message)
-       
-      console.log(payload)
-     
-      
-    
+      try {
+        const key = message.key ? message.key.toString() : null;
+        const raw = message.value ? message.value.toString() : null;
+
+        if (!raw) {
+          console.warn("Received message with empty value, skipping. key=", key);
+          return;
+        }
+
+        const payload = JSON.parse(raw);
+
+        console.log(`[key=${key}] tool=${payload.tool}`, payload);
+      } catch (err) {
+        console.error("Failed to parse Kafka message:", err);
+      }
     },
   });
 }
