@@ -28,7 +28,7 @@ export const getRepo=asyncHandler(async(req,res,next)=>{
   const repo=await Installation.findOne({accountId:githubId})
 
 
-  const sonarReport=await SonarQubeReport.findOne({accountId:userId}).sort({ createdAt: -1 });
+  const sonarReport=await SonarQubeReport.findOne({accountId:userId}).sort({ updateAt: -1 });
    
  const response: repoList[] = repo?.repositories.map((element) => {
 

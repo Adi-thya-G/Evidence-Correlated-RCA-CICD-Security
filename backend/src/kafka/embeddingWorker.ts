@@ -1,5 +1,6 @@
 // embeddingWorker.ts
 import { Kafka,logLevel } from "kafkajs";
+import { json } from "node:stream/consumers";
 export const kafka = new Kafka({
   clientId: 'rca-backend',
   brokers: [process.env.KAFKA_BROKER ?? '127.0.0.1:9092'],
@@ -16,9 +17,9 @@ export async function startEmbeddingWorker() {
     // Process partitions in parallel, messages within a partition in order
     partitionsConsumedConcurrently: 3,
     eachMessage: async ({ message }) => {
-      
+      const payload= JSON.stringify(message)
        
-      console.log(message)
+      console.log(payload)
      
       
     
