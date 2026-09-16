@@ -169,18 +169,14 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
         topic: 'raw-findings',
         messages: [
           {
-            key: `${report.repo_id}:${commitSha}`,
-            value: JSON.stringify({
-              tool: 'sonarqube',
-              projectKey,
-              branch,
-              commitSha,
-              accountId: String(accountId),
-              repoId: report.repo_id,
-              issues,
-              hotspots,
-              analysedAt,
-            }),
+            key: `${report.repo_id}:${report.accountId}`,
+            value: JSON.stringify(
+              {
+              accountId:report.accountId,
+              repo_id:report.repo_id ,
+              commitSha 
+              } 
+            ),
           },
         ],
       });
