@@ -11,6 +11,7 @@ import { User } from "@modules/User";
 import mongoose from "mongoose";
 import {runSecurityScan}from "@utils/RunSecurityScan"
 import { producer } from "@kafka/producer";
+import { SecurityScanReport } from "@modules/SecurityScannerReport";
 
 export const webHookHandler = asyncHandler(async (req, res) => {
   const signature = req.headers["x-hub-signature-256"] as string;
@@ -165,6 +166,8 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
         },
         { upsert: true, new: true },
       );
+
+      const security=await SecurityScanReport.findOne({accountId,repo_id:report.repo_id})
       await producer.send({
         topic: 'raw-findings',
         messages: [
@@ -174,11 +177,14 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
               {
               accountId:report.accountId,
               repo_id:report.repo_id ,
-              commitSha 
+              commitSha ,
+              cloneUrl:security?.repoPath,
+              installationId:security?.repoPath.split("/")[4]
+              
               } 
             ),
           },
-        ],
+        ] ,
       });
       
     }
