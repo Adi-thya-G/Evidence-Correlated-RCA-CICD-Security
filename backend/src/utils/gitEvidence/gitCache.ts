@@ -1,5 +1,5 @@
 import type { SimpleGit } from 'simple-git';
-import type { CommitMetadata } from '../types';
+import type { CommitMetadata } from '../../types/gitEvidence.types';
 
 /**
  * In-memory cache keyed by commit hash. Commits are immutable once made,

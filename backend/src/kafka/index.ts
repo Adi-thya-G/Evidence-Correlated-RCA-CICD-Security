@@ -1,9 +1,16 @@
-// backend/src/kafka/index.ts
-import { startEmbeddingWorker } from "./embeddingWorker";
+import {env} from '@config/env';
+import mongoose from 'mongoose';
+import { startEmbeddingWorker } from './embeddingWorker';
 
-startEmbeddingWorker()
-  .then(() => console.log("Embedding worker running, listening on raw-findings..."))
-  .catch((err) => {
-    console.error("Fatal error starting embedding worker:", err);
-    process.exit(1);
-  });
+async function main() {
+  await mongoose.connect(env.MONGODB_URI);
+  console.log('MongoDB connected (worker)');
+
+  await startEmbeddingWorker();
+  console.log('Embedding worker running, listening on raw-findings...');
+}
+
+main().catch((err) => {
+  console.error('Worker failed to start:', err);
+  process.exit(1);
+});
