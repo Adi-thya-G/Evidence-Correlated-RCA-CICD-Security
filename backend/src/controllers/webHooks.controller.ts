@@ -238,7 +238,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
               repo_id: report.repo_id,
               commitSha,
               cloneUrl: security?.repoPath,
-              installationId: security?.repoPath.split("/")[3],
+              installationId: security?.repoPath.split("\\")[4],
             }),
           },
         ],
