@@ -5,7 +5,7 @@ import { toGitPath } from './pathUtils';
 import { GitEvidenceCache } from './gitCache';
 // src/utils/gitEvidence/evidenceCollector.ts
 import type { NormalizedFinding, EnrichedFinding, BlameEntry } from '../../types/gitEvidence.types';
-
+import { env } from '@config/env';
 /**
  * Blames an ENTIRE file once (not per finding). Findings that land in the
  * same file share this one call — the single biggest performance lever
@@ -21,7 +21,7 @@ function groupFindingsByFile(findings: NormalizedFinding[]): Map<string, Normali
   for (const f of findings) {
     if (!f.file) continue;
     const temp=f.file.split(":")[0].split("_")
-    const path=`data//installation//${temp[0]}//repo//${temp[1]}//${f.file.split(":")[1]}`
+    const path=`${env.DATABASE_NAME}//${temp[0]}//repo//${temp[1]}//${f.file.split(":")[1]}`
 
     const key = toGitPath(path);
     if (!byFile.has(key)) byFile.set(key, []);
