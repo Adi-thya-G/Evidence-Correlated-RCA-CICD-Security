@@ -1,15 +1,34 @@
+// src/utils/gitEvidence/pathUtils.ts
 import path from 'path';
 
-// Root of the data directory, e.g. /data or D:\...\data on a dev box.
-// Never hardcode a drive letter or absolute path in code — always read from env.
-export const DATA_ROOT = process.env.DATA_ROOT || '/data';
+/**
+ * Root of the data directory.
+ *
+ * - Dev (Windows):  set DATA_ROOT=D:\Evidence-Correlated-RCA-CICD-Security\data in backend/.env
+ * - Docker:         set DATA_ROOT=/data and mount a volume there
+ * - Not set:        falls back to <backend>/../data
+ *
+ * path.resolve() guarantees an absolute path, so a drive-less path like
+ * "\data\..." can never be produced again.
+ */
+export const DATA_ROOT = path.resolve(
+  process.env.DATA_ROOT ?? path.join(process.cwd(), '..', 'data')
+);
+
+/** data/installations/{installationId} */
+export function getInstallationPath(installationId: string | number): string {
+  return path.join(DATA_ROOT, 'installations', String(installationId));
+}
 
 /**
  * data/installations/{installationId}/{repoId}/repo
- * This is the local git clone used for blame / diff / log.
+ * Local git clone used for blame / diff / log.
  */
-export function getRepoPath(installationId: string | number, repoId: string | number): string {
-  return path.join(DATA_ROOT, 'installations', String(installationId), String(repoId), 'repo');
+export function getRepoPath(
+  installationId: string | number,
+  repoId: string | number
+): string {
+  return path.join(getInstallationPath(installationId), String(repoId), 'repo');
 }
 
 /**
@@ -21,14 +40,14 @@ export function getScanOutputPath(
   repoId: string | number,
   scanId: string
 ): string {
-  return path.join(DATA_ROOT, 'installations', String(installationId), String(repoId), 'scans', scanId);
+  return path.join(getInstallationPath(installationId), String(repoId), 'scans', scanId);
 }
 
 /**
- * Converts an OS-native path (which may contain backslashes on Windows,
- * or come from a document field like "src\\server.js") into the
- * forward-slash form git itself expects on every platform.
+ * Converts an OS-native path (backslashes on Windows, or a document field
+ * like "src\\server.js") into the forward-slash form git expects everywhere.
+ * Also strips a leading "./" or "/".
  */
 export function toGitPath(p: string): string {
-  return p.replace(/\\/g, '/');
+  return p.replace(/\\/g, '/').replace(/^\.?\/+/, '');
 }

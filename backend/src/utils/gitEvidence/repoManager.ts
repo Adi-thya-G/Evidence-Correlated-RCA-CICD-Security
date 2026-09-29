@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import fs from 'fs/promises';
 import path from 'path';
 import simpleGit, { SimpleGit } from 'simple-git';
@@ -6,8 +7,8 @@ import { getRepoPath } from './pathUtils';
 
 const repoLocks = new Map<string, Mutex>();
 
-function getRepoLock(repoId: string | number): Mutex {
-  const key = String(repoId);
+// Lock key is installationId:repoId so it matches the folder on disk
+function getRepoLock(key: string): Mutex {
   if (!repoLocks.has(key)) repoLocks.set(key, new Mutex());
   return repoLocks.get(key)!;
 }
@@ -22,9 +23,8 @@ async function pathExists(p: string): Promise<boolean> {
 }
 
 /**
- * Blame needs full commit history. Shallow clones (common on CI runners,
- * --depth 1) silently return wrong/incomplete blame data, so this must
- * run before any blame/log call and is treated as a hard gate.
+ * Blame needs full commit history. Shallow clones silently return
+ * incomplete blame data, so unshallow before any blame/log call.
  */
 export async function ensureFullHistory(git: SimpleGit): Promise<void> {
   const isShallow = (await git.raw(['rev-parse', '--is-shallow-repository'])).trim();
@@ -33,15 +33,6 @@ export async function ensureFullHistory(git: SimpleGit): Promise<void> {
   }
 }
 
-/**
- * Ensures a local clone exists for this installation+repo, checked out
- * at the exact commit the finding was scanned against, and returns a
- * SimpleGit instance bound to it.
- *
- * Safe for concurrent Kafka messages targeting the same repo on the same
- * worker pod: a per-repoId mutex serializes clone/fetch/checkout so two
- * messages never race on the same working directory.
- */
 export async function ensureRepoCheckedOut(
   installationId: string | number,
   repoId: string | number,
@@ -49,25 +40,32 @@ export async function ensureRepoCheckedOut(
   commitSha: string
 ): Promise<SimpleGit> {
   const repoPath = getRepoPath(installationId, repoId);
-  const lock = getRepoLock(repoId);
+  const lock = getRepoLock(`${installationId}:${repoId}`);
 
   return lock.runExclusive(async () => {
-    const gitDirExists = await pathExists(path.join(repoPath, '.git'));
+    console.log(`[repoManager] repoPath=${repoPath}`);
+    const hasGitDir = await pathExists(path.join(repoPath, '.git'));
 
-    if (!gitDirExists) {
-      await fs.mkdir(repoPath, { recursive: true });
-      const bootstrapper = simpleGit();
-      // Full clone, not shallow — required for correct blame/pickaxe results.
-      await bootstrapper.clone(cloneUrl, repoPath);
-      const repoGit = simpleGit(repoPath);
-      await repoGit.checkout(commitSha);
-      return repoGit;
+    if (!hasGitDir) {
+      // Leftover folder from a failed clone (has files but no .git) -> remove it
+      await fs.rm(repoPath, { recursive: true, force: true });
+      // Create only the PARENT folder; git creates the target itself
+      await fs.mkdir(path.dirname(repoPath), { recursive: true });
+
+      try {
+        // Full clone, not shallow: required for correct blame results
+        await simpleGit().clone(cloneUrl, repoPath);
+      } catch (err) {
+        // Don't leave a half-cloned folder behind
+        await fs.rm(repoPath, { recursive: true, force: true });
+        throw err;
+      }
     }
 
     const repoGit = simpleGit(repoPath);
     await ensureFullHistory(repoGit);
-    await repoGit.fetch(['--all']);
-    await repoGit.checkout(commitSha);
+    if (hasGitDir) await repoGit.fetch(['--all']); // fresh clone already has everything
+    await repoGit.checkout(['--force', '--detach', commitSha]);
     return repoGit;
   });
 }
