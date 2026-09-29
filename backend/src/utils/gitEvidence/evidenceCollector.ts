@@ -1,10 +1,10 @@
 import type { SimpleGit } from 'simple-git';
 import pLimit from 'p-limit';
 import { parsePorcelainBlame, getDominantCommit } from './blameParser';
-import { toGitPath } from './repoPaths';
+import { toGitPath } from './pathUtils';
 import { GitEvidenceCache } from './gitCache';
 // src/utils/gitEvidence/evidenceCollector.ts
-import type { NormalizedFinding, EnrichedFinding, BlameEntry } from '@types/gitEvidence.types';
+import type { NormalizedFinding, EnrichedFinding, BlameEntry } from '../../types/gitEvidence.types';
 
 /**
  * Blames an ENTIRE file once (not per finding). Findings that land in the

@@ -9,7 +9,7 @@ import { SonarQubeReport } from "@modules/SonarQubeReport";
 import { SonarAnalysisHistory } from "@modules/SonarQubeHistory";
 import { User } from "@modules/User";
 import mongoose from "mongoose";
-import {runSecurityScan}from "@utils/RunSecurityScan"
+import { runSecurityScan } from "@utils/RunSecurityScan";
 import { producer } from "@kafka/producer";
 import { SecurityScanReport } from "@modules/SecurityScannerReport";
 
@@ -31,6 +31,7 @@ export const webHookHandler = asyncHandler(async (req, res) => {
 
   const event = req.headers["x-github-event"];
   const payload = JSON.parse(req.body.toString());
+  console.log(event);
 
   if (event === "installation") {
     const installationId = payload.installation.id;
@@ -55,9 +56,7 @@ export const webHookHandler = asyncHandler(async (req, res) => {
     } else {
       console.log("unhandled installation action:", payload.action);
     }
-  }
-   else if (event === "push") 
-    {
+  } else if (event === "push") {
     const response = await handlePushEvent(payload);
     const key = await projectKey(
       payload.installation.id,
@@ -78,25 +77,83 @@ export const webHookHandler = asyncHandler(async (req, res) => {
         new: true,
       },
     );
-  
-    const userId=user?._id;
-    const repoId= payload.repository.id
-    const branch=payload.repository.branch
- runSecurityScan(response, {
-  accountId: String(userId),
-  repo_id: repoId,
-  projectKey: key,
-  branch: branch ?? "main",
-  scriptPath: "D:/Evidence-Correlated-RCA-CICD-Security/backend/scripts/scan-and-store.js"
-})
 
+    const userId = user?._id;
+    const repoId = payload.repository.id;
+    const branch = payload.repository.branch;
+    runSecurityScan(response, {
+      accountId: String(userId),
+      repo_id: repoId,
+      projectKey: key,
+      branch: branch ?? "main",
+      scriptPath:
+        "D:/Evidence-Correlated-RCA-CICD-Security/backend/scripts/scan-and-store.js",
+    });
+  } else if (event === "installation_repositories") {
+    const githubId = payload.installation.account.id;
+
+    if (payload.action === "removed") {
+      const repositoryId = payload.repositories_removed[0].id;
+
+      await Installation.findOneAndUpdate(
+        {
+          accountId: githubId,
+          "repositories.repoId": repositoryId,
+        },
+        {
+          $set: {
+            "repositories.$.disconnected": true,
+          },
+        },
+      );
+    } else if (payload.action === "added") {
+      const repo = payload.repositories_added[0];
+
+      const repositoryData = {
+        repoId: repo.id,
+        name: repo.name,
+        fullName: repo.full_name,
+        private: repo.private,
+        lastSyncedCommit: null,
+        disconnected: false,
+        correlationHistory: false,
+      };
+
+      const updated = await Installation.findOneAndUpdate(
+        {
+          accountId: githubId,
+          "repositories.repoId": repo.id,
+        },
+        {
+          $set: {
+            "repositories.$.disconnected": false,
+            "repositories.$.name": repo.name,
+            "repositories.$.fullName": repo.full_name,
+            "repositories.$.private": repo.private,
+          },
+        },
+        { new: true },
+      );
+
+      if (!updated) {
+        await Installation.findOneAndUpdate(
+          { accountId: githubId },
+          {
+            $push: {
+              repositories: repositoryData,
+            },
+          },
+        );
+      }
+    }
+  } else {
+    console.log(event, payload);
   }
 
-  res.send('0k');
+  res.send("0k");
 });
 // here sonarQube report is add sonarQube report and
 export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
-  
   const payload = req.body;
   res.status(200).send("Ok");
 
@@ -167,26 +224,25 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
         { upsert: true, new: true },
       );
 
-      const security=await SecurityScanReport.findOne({accountId,repo_id:report.repo_id})
+      const security = await SecurityScanReport.findOne({
+        accountId,
+        repo_id: report.repo_id,
+      });
       await producer.send({
-        topic: 'raw-findings',
+        topic: "raw-findings",
         messages: [
           {
             key: `${report.repo_id}:${report.accountId}`,
-            value: JSON.stringify(
-              {
-              accountId:report.accountId,
-              repo_id:report.repo_id ,
-              commitSha ,
-              cloneUrl:security?.repoPath,
-              installationId:security?.repoPath.split("/")[4]
-              
-              } 
-            ),
+            value: JSON.stringify({
+              accountId: report.accountId,
+              repo_id: report.repo_id,
+              commitSha,
+              cloneUrl: security?.repoPath,
+              installationId: security?.repoPath.split("/")[4],
+            }),
           },
-        ] ,
+        ],
       });
-      
     }
   }
 });

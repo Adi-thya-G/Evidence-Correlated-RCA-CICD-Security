@@ -2,6 +2,7 @@ import { Document, Schema, model, Types } from "mongoose";
 
 interface ISetting extends Document {
   _id: Types.ObjectId;
+  userId:Types.ObjectId;
   threshold: number;
   retrieval: number;
   slack: boolean;
@@ -11,6 +12,11 @@ interface ISetting extends Document {
 }
 
 const SettingSchema = new Schema<ISetting>({
+  userId:{
+    type: Schema.Types.ObjectId,
+    ref:"User",
+    unique:true
+  },
   threshold: {
     type: Number,
     required: true,

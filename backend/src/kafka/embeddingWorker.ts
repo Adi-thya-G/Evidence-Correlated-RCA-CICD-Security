@@ -1,9 +1,9 @@
 import { kafka } from './client'; // adjust to your actual kafka client import
-import pLimit from 'p-limit';
+
 import { SonarDataFetch } from '@modules/SonarDataFetch';
 import { ensureRepoCheckedOut } from '@utils/gitEvidence/repoManager';
 import { collectEvidenceForFindings } from '@utils/gitEvidence/evidenceCollector';
-import type { ProducerMessage, NormalizedFinding } from '@types/gitEvidence.types';
+import type { ProducerMessage, NormalizedFinding } from '../types/gitEvidence.types';
 
 const consumer = kafka.consumer({ groupId: 'embedding-workers' });
 

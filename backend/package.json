@@ -4,9 +4,10 @@
   "description": "Backend for Evidence-Correlated Root Cause Localization system (SonarQube, Semgrep, Trivy, Gitleaks correlation via LLM reasoning)",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/server.js",
+     "dev": "tsx watch src/server.ts",
+    "build": "tsc && tsc-alias",
+  "start": "node dist/server.js",
+   "worker": "tsx watch src/kafka/embeddingWorker.ts",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
     "format": "prettier --write \"src/**/*.ts\"",
@@ -74,6 +75,7 @@
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.4",
     "ts-node": "^10.9.2",
+    "tsc-alias": "^1.9.5",
     "tsx": "^4.19.0",
     "typescript": "^6.0.3"
   }

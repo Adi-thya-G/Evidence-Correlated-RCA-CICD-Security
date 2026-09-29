@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import simpleGit, { SimpleGit } from 'simple-git';
 import { Mutex } from 'async-mutex';
-import { getRepoPath } from './repoPaths';
+import { getRepoPath } from './pathUtils';
 
 const repoLocks = new Map<string, Mutex>();
 
