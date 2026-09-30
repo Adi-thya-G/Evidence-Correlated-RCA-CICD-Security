@@ -8,9 +8,9 @@ export function getInstallationPath(installationId: string | number): string {
   return path.join(DATA_ROOT, 'installations', String(installationId));
 }
 
-/** data/installations/{installationId}/{repoId}/repo */
+/** data/installations/{installationId}/repo/{repoid} */
 export function getRepoPath(installationId: string | number, repoId: string | number): string {
-  return path.join(getInstallationPath(installationId), String(repoId), 'repo');
+  return path.join(getInstallationPath(installationId),'repo', String(repoId),);
 }
 
 /** data/installations/{installationId}/{repoId}/scans/{scanId} */
