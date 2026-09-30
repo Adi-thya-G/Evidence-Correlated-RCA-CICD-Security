@@ -28,6 +28,7 @@ const Toggle: React.FC<ToggleProps> = ({
   const isOn = isControlled ? checked : internalChecked;
  
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log(e.target.value)
     const next = e.target.checked;
     if (!isControlled) setInternalChecked(next);
     onChange?.(next);

@@ -1,7 +1,10 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import '../App.css'
 import { NavLink, Outlet } from 'react-router-dom'
-const menu = [
+import {useSetting,useDangerZone} from '@/stores/useSettingsStore'
+import { useRepoStore } from '@/stores/repoStore';
+import type{repoList,InitialState} from "@/stores/repoStore"
+ const menu = [
   { label: "General",        path: "general" },
   { label: "Scanners",       path: "scanners" },
   { label: "Correlation",    path: "correlation" },
@@ -11,6 +14,19 @@ const menu = [
 ];
 
 function Setting() {
+
+  const fetchData=useSetting((s)=>s.fetchData)
+  const fetchDangerData=useDangerZone((s)=>s.fetch_data)
+
+   const defaultRepo=useRepoStore((s)=>s.default) as repoList
+
+  useEffect(()=>{
+    if(defaultRepo!=null){
+    fetchData().then()
+    fetchDangerData()
+    }
+  },[defaultRepo])
+
  const [active,setActive]= useState<number>(0)
   return (
     <div className=' p-8 h-full flex flex-col gap-8 w-max'>

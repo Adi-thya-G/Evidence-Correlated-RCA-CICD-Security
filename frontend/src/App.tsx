@@ -5,8 +5,9 @@ import { Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useUserStore } from "@/stores/userAuth";
 import { useRepoStore } from "@/stores/repoStore";
-
+import { Toaster } from "sonner";
 function App() {
+
   //hook that will fetch data from bakend about repository list
   const repoInitialFetch = useRepoStore((s) => s.initialFetch);
   // defualt repository mean current repo or the newest repo that as been change that repo is selected as default repo
@@ -47,9 +48,11 @@ function App() {
 
   return (
     <div className="w-full h-screen flex flex-row overflow-y-hidden">
+      <Toaster position="top-right"/>
       <SideNav />
 
-      <div className="flex-1 h-full min-w-0 flex flex-col  overflow-y-hidden">
+      <div className="flex-1 h-full min-w-0 flex flex-col  overflow-y-hidden relative">
+          
         <header className="w-full min-h-17 border-b border-gray-300 flex items-center justify-between px-3">
           <h2 className="text-xl text-black font-serif font-bold">{header}</h2>
 
@@ -73,8 +76,9 @@ function App() {
             </select>
           </div>
         </header>
-
+         
         <div className="overflow-y-auto">
+        
           <Outlet />
         </div>
        

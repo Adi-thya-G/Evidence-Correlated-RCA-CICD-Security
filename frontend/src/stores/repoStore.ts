@@ -22,7 +22,7 @@ interface Irepo{
    clear:()=>Promise<void>
 
 }
-interface InitialState{
+export interface InitialState{
  repository:repoList[],
  default:repoList|null,
 }
