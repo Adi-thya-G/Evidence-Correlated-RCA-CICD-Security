@@ -20,7 +20,7 @@ function groupFindingsByFile(findings: NormalizedFinding[]): Map<string, Normali
   const byFile = new Map<string, NormalizedFinding[]>();
   for (const f of findings) {
     if (!f.file) continue;
-    const temp=f.file.split(":")[0].split("_")
+    const temp=f.file.split(":")[0].split("_");
     const path=`${env.DATABASE_NAME}//${temp[0]}//repo//${temp[1]}//${f.file.split(":")[1]}`
 
     const key = toGitPath(path);
