@@ -68,7 +68,8 @@ export async function startEmbeddingWorker() {
         );
 
         console.log(`[key=${key}] Enriched ${enriched.length} findings for repo_id=${repo_id}`);
-
+  
+        
         // 4. TODO: persist `enriched` to the findings collection and/or
         //    hand off to the embedding stage (vector DB write).
       } catch (err) {
