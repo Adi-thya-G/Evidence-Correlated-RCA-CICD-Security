@@ -1,27 +1,43 @@
+// src/utils/gitEvidence/evidenceCollector.ts
 import type { SimpleGit } from 'simple-git';
 import pLimit from 'p-limit';
 import { parsePorcelainBlame, getDominantCommit } from './blameParser';
-import { toGitPath } from './pathUtils';
+import { sonarComponentToGitPath } from './pathUtils';
 import { GitEvidenceCache } from './gitCache';
-// src/utils/gitEvidence/evidenceCollector.ts
 import type { NormalizedFinding, EnrichedFinding, BlameEntry } from '../../types/gitEvidence.types';
-import { env } from '@config/env';
+
 /**
  * Blames an ENTIRE file once (not per finding). Findings that land in the
- * same file share this one call — the single biggest performance lever
- * when a scan produces many findings per file.
+ * same file share this one call.
+ *
+ * `filePath` must be repo-relative (forward slashes). The SimpleGit instance
+ * must already be rooted at the repo (simpleGit(getRepoPath(...))).
+ * If commitSha is given, blame runs against that exact commit.
+ * A failing file returns [] so one bad path doesn't kill the whole batch.
  */
-async function blameWholeFile(git: SimpleGit, filePath: string): Promise<BlameEntry[]> {
-  const raw = await git.raw(['blame', '--line-porcelain', filePath]);
-  return parsePorcelainBlame(raw);
+async function blameWholeFile(
+  git: SimpleGit,
+  filePath: string,
+  commitSha?: string
+): Promise<BlameEntry[]> {
+  try {
+    const args = ['blame', '--line-porcelain'];
+    if (commitSha) args.push(commitSha);
+    args.push('--', filePath);
+    const raw = await git.raw(args);
+    return parsePorcelainBlame(raw);
+  } catch (err) {
+    console.warn(`[blame] skipped ${filePath}:`, (err as Error).message);
+    return [];
+  }
 }
 
 function groupFindingsByFile(findings: NormalizedFinding[]): Map<string, NormalizedFinding[]> {
   const byFile = new Map<string, NormalizedFinding[]>();
   for (const f of findings) {
     if (!f.file) continue;
-   const relativeFile = f.file.split(":")[1];
-    const key = toGitPath(relativeFile);
+    // "160832699_1341658140:backend/src/x.ts" -> "backend/src/x.ts"
+    const key = sonarComponentToGitPath(f.file);
     if (!byFile.has(key)) byFile.set(key, []);
     byFile.get(key)!.push(f);
   }
@@ -29,19 +45,26 @@ function groupFindingsByFile(findings: NormalizedFinding[]): Map<string, Normali
 }
 
 /**
- * SCA findings (Trivy) point at a lockfile with a package name, not a
- * line range that means anything semantically. The right git question
- * is "which commit last introduced/changed this package in the lockfile?"
- * -S is git's "pickaxe" search: commits whose diff added/removed this string.
+ * SCA findings (Trivy) point at a lockfile with a package name.
+ * Git "pickaxe" (-S) finds the last commit whose diff added/removed the string.
  */
 async function getDependencyIntroductionCommit(
   git: SimpleGit,
   pkgName: string,
-  lockFile: string
+  lockFile: string,
+  commitSha?: string
 ): Promise<string | null> {
-  const log = await git.raw(['log', '-1', '--format=%H', '-S', pkgName, '--', lockFile]);
-  const hash = log.trim();
-  return hash.length > 0 ? hash : null;
+  try {
+    const args = ['log', '-1', '--format=%H', '-S', pkgName];
+    if (commitSha) args.push(commitSha);
+    args.push('--', lockFile);
+    const log = await git.raw(args);
+    const hash = log.trim();
+    return hash.length > 0 ? hash : null;
+  } catch (err) {
+    console.warn(`[sca] pickaxe failed for ${pkgName} in ${lockFile}:`, (err as Error).message);
+    return null;
+  }
 }
 
 async function enrichSastOrSecretFinding(
@@ -79,14 +102,15 @@ async function enrichSastOrSecretFinding(
 async function enrichScaFinding(
   git: SimpleGit,
   cache: GitEvidenceCache,
-  finding: NormalizedFinding
+  finding: NormalizedFinding,
+  commitSha?: string
 ): Promise<EnrichedFinding> {
-  if (!finding.pkgName) {
+  if (!finding.pkgName || !finding.file) {
     return { ...finding, git_evidence: null };
   }
 
-  const filePath = toGitPath(finding.file);
-  const commitHash = await getDependencyIntroductionCommit(git, finding.pkgName, filePath);
+  const filePath = sonarComponentToGitPath(finding.file);
+  const commitHash = await getDependencyIntroductionCommit(git, finding.pkgName, filePath, commitSha);
   if (!commitHash) {
     return { ...finding, git_evidence: null };
   }
@@ -105,16 +129,15 @@ async function enrichScaFinding(
 /**
  * Enriches every finding in a batch with git evidence.
  *
- * - Groups SAST/secrets findings by file and blames each file exactly once.
- * - Resolves SCA findings via pickaxe search on the lockfile.
- * - Caches commit metadata by hash so repeated commits (common across
- *   findings in the same PR) only ever fetch diff/author once.
- * - Caps concurrent git subprocesses via a shared limiter (tune to the
- *   CI runner's core count; per the reference hardware spec this is 4).
+ * @param git        SimpleGit rooted at the repo: simpleGit(getRepoPath(installationId, repoId))
+ * @param findings   findings whose `file` is repo-relative (optionally "projectKey:" prefixed)
+ * @param commitSha  the scanned commit (recommended, so blame matches what was scanned)
+ * @param concurrency max parallel git subprocesses
  */
 export async function collectEvidenceForFindings(
   git: SimpleGit,
   findings: NormalizedFinding[],
+  commitSha?: string,
   concurrency = 4
 ): Promise<EnrichedFinding[]> {
   const cache = new GitEvidenceCache();
@@ -128,16 +151,18 @@ export async function collectEvidenceForFindings(
   const lineBasedResults = await Promise.all(
     [...byFile.entries()].map(([filePath, fileFindings]) =>
       limit(async () => {
-        const blameEntries = await blameWholeFile(git, filePath);
+        const blameEntries = await blameWholeFile(git, filePath, commitSha);
         return Promise.all(
-          fileFindings.map((finding) => enrichSastOrSecretFinding(git, cache, finding, blameEntries))
+          fileFindings.map((finding) =>
+            enrichSastOrSecretFinding(git, cache, finding, blameEntries)
+          )
         );
       })
     )
   );
 
   const scaResults = await Promise.all(
-    scaFindings.map((finding) => limit(() => enrichScaFinding(git, cache, finding)))
+    scaFindings.map((finding) => limit(() => enrichScaFinding(git, cache, finding, commitSha)))
   );
 
   return [...lineBasedResults.flat(), ...scaResults];

@@ -29,11 +29,10 @@ export async function startEmbeddingWorker() {
           return;
         }
 
-        const payload = JSON.parse(raw);
+        const payload = JSON.parse(raw) as ProducerMessage & { tool?: string };
         console.log(`[key=${key}] tool=${payload.tool}`, payload);
 
-        const { accountId, repo_id, commitSha, installationId, cloneUrl } =
-          (payload as ProducerMessage) ?? {};
+        const { accountId, repo_id, commitSha, installationId, cloneUrl } = payload ?? {};
 
         if (!accountId || !repo_id || !commitSha || !installationId || !cloneUrl) {
           throw new Error(
@@ -42,12 +41,17 @@ export async function startEmbeddingWorker() {
         }
 
         // 1. Ensure a local, full-history clone exists at the exact commit
-        //    the scanner ran against. Safe under concurrent messages for
-        //    the same repo (locked per repoId inside).
+        //    the scanner ran against. The returned `git` is rooted at
+        //    data/installations/{installationId}/{repoId}/repo, so all file
+        //    paths given to it must be repo-relative.
         const git = await ensureRepoCheckedOut(installationId, repo_id, cloneUrl, commitSha);
 
         // 2. Pull the SonarQube issues tied to this specific commit's analysis.
-        const sonarIssues = (await SonarDataFetch({ accountId, repo_id, commitSha })) as NormalizedFinding[];
+        const sonarIssues = (await SonarDataFetch({
+          accountId,
+          repo_id,
+          commitSha,
+        })) as NormalizedFinding[];
 
         if (sonarIssues.length === 0) {
           console.log(`[key=${key}] No matched SonarQube issues for commit=${commitSha}`);
@@ -55,7 +59,13 @@ export async function startEmbeddingWorker() {
         }
 
         // 3. Enrich with git blame / diff / commit evidence.
-        const enriched = await collectEvidenceForFindings(git, sonarIssues, PER_MESSAGE_GIT_CONCURRENCY);
+        //    NOTE: signature is (git, findings, commitSha, concurrency).
+        const enriched = await collectEvidenceForFindings(
+          git,
+          sonarIssues,
+          commitSha,
+          PER_MESSAGE_GIT_CONCURRENCY
+        );
 
         console.log(`[key=${key}] Enriched ${enriched.length} findings for repo_id=${repo_id}`);
 
