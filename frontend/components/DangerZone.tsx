@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Button from './Button'
 import {useDangerZone} from '@/stores/useSettingsStore'
 import type{ DangerZone } from '@/stores/useSettingsStore'
+import {toast} from 'sonner'
 function DangerZone() {
 
   const [correlation_history,setCorrelation_history]=useState<boolean>(false)
@@ -20,7 +21,14 @@ function DangerZone() {
 
 
   const update=async({correlation_history,Disconnect_repository}:{correlation_history:boolean,Disconnect_repository:boolean})=>{
-   updateDangerZone({correlation_history ,Disconnect_repository})
+   try{
+    updateDangerZone({correlation_history ,Disconnect_repository})
+     return
+
+   }
+   catch(error){
+
+   }
   }
 
   return (
@@ -41,6 +49,9 @@ function DangerZone() {
             
             update({correlation_history:!correlation_history,Disconnect_repository:Disconnect_repository})
             setCorrelation_history((pre)=>!pre)
+             toast.success("Settings saved", {
+  description: " correlation history settings have been updated.",
+});
           }}
           />
         </div>
@@ -52,6 +63,9 @@ function DangerZone() {
           onClick={()=>{
              update({correlation_history:correlation_history,Disconnect_repository:!Disconnect_repository})
             setDisconnect_repository((pre)=>!pre)
+             toast.success("Settings saved", {
+  description: " Disconnect repository settings have been updated.",
+});
           }}
           />
         </div>
