@@ -1,9 +1,10 @@
 import { kafka } from './client'; // adjust to your actual kafka client import
-
+import { persistEnrichedFindings } from '@services/Persistfindings';
 import { SonarDataFetch } from '@modules/SonarDataFetch';
 import { ensureRepoCheckedOut } from '@utils/gitEvidence/repoManager';
 import { collectEvidenceForFindings } from '@utils/gitEvidence/evidenceCollector';
 import type { ProducerMessage, NormalizedFinding } from '../types/gitEvidence.types';
+
 
 const consumer = kafka.consumer({ groupId: 'embedding-workers' });
 
@@ -68,10 +69,10 @@ export async function startEmbeddingWorker() {
         );
 
         console.log(`[key=${key}] Enriched ${enriched.length} findings for repo_id=${repo_id}`);
-  
-        
-        // 4. TODO: persist `enriched` to the findings collection and/or
-        //    hand off to the embedding stage (vector DB write).
+
+        // 4. Persist to MongoDB
+        const result = await persistEnrichedFindings(enriched, { accountId, repo_id, commitSha });
+        console.log(`[key=${key}] Saved findings: ${result.upserted} new, ${result.modified} updated`);
       } catch (err) {
         console.error(`[key=${key}] Failed to process Kafka message:`, err);
       }

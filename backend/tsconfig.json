@@ -16,7 +16,8 @@
       "@axios/*":["./src/axios/*"],
       "@controllers/*":["./src/controllers/*"],
       "@routes/*":["./src/routes/*"],
-      "@kafka/*":["./src/kafka/*"]
+      "@kafka/*":["./src/kafka/*"],
+      "@services/*":["./src/services/*"]
     },
     "strict": true,
     "esModuleInterop": true,
