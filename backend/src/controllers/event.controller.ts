@@ -110,7 +110,7 @@ const sendEventToUser = async (
     }
 
     const clients = connectedClients.get(userIdString);
-
+     console.log
     if (!clients) {
         return;
     }
