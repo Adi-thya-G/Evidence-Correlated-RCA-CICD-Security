@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 import { FaGithub } from "react-icons/fa";
-
+import{useNotification} from "@/stores/useNotification"
 // Change this to the SSE route exposed by event.controller
 const EVENTS_URL = import.meta.env.VITE_API_BASE_URL+"/api/v1/event";
 
@@ -80,6 +80,7 @@ const timeAgo = (iso: string) => {
 function PopNotification() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [, setTick] = useState(0);
+  const { updateNotification } = useNotification();
 
   // Live stream from the backend 
   useEffect(() => {
@@ -127,6 +128,9 @@ function PopNotification() {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, unread: false } : n)),
     );
+    updateNotification(id, { unread: false });
+
+
   };
 
   return (
