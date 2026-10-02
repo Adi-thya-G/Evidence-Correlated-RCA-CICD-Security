@@ -74,33 +74,55 @@ const getEvents = asyncHandler(async (req, res) => {
     console.log("Connected clients:", connectedClients.size);
 });
 
-const sendEventToUser = async(userId:string|undefined=undefined,installationId :number|undefined=undefined, 
-  event: string, data: unknown) => {
-  
-  let userIdString = undefined;
-  if(userId!=undefined){
-       userIdString = userId
-  }  
-  if(installationId!=undefined)
-  {
-    const installation=await Installation.findOne({installationId:installationId})
-    
-    const user=await User.findOne({githubId:installation?.accountId})
-    if(!user)
-       return
-    userIdString=user._id.toString(); 
-    
-  }
-  if(userIdString!=undefined){
-    const clinet=connectedClients.get(userIdString);
-     const message=`event:${event}\n
-      data:${data}
-      `
-    clinet?.forEach((res)=>{
-      res.write(message)
-    })
-  }
-     
+const sendEventToUser = async (
+    userId: string | undefined,
+    installationId: number | undefined,
+    event: string,
+    data: unknown
+) => {
+
+    let userIdString: string | undefined = userId;
+
+    if (installationId !== undefined) {
+
+        const installation = await Installation.findOne({
+            installationId
+        });
+
+        if (!installation) {
+            return;
+        }
+
+        const user = await User.findOne({
+            githubId: installation.accountId
+        });
+
+        if (!user) {
+            return;
+        }
+
+        userIdString = user._id.toString();
+    }
+
+    if (!userIdString) {
+        return;
+    }
+
+    const clients = connectedClients.get(userIdString);
+
+    if (!clients) {
+        return;
+    }
+
+    const message =
+        `event: ${event}\n` +
+        `data: ${JSON.stringify(data)}\n\n`;
+
+    clients.forEach((res) => {
+      console.log(message)
+        res.write(message);
+    });
+    console.log(userIdString)
 };
 
 export { getEvents, sendEventToUser };

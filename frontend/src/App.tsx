@@ -46,9 +46,6 @@ function App() {
 
 
   useEffect(() => {
-    const handleOpen = (event: Event) => {
-        console.log("SSE connected", event);
-    };
 
     const handleNotification = (event: MessageEvent) => {
         console.log("Notification:", event.data);
@@ -57,19 +54,11 @@ function App() {
         console.log(data);
     };
 
-    const handleError = (event: Event) => {
-        console.log("SSE error:", event);
-    };
 
-    Event.addEventListener("open", handleOpen);
     Event.addEventListener("notification", handleNotification);
-    Event.addEventListener("error", handleError);
 
     return () => {
-        Event.removeEventListener("open", handleOpen);
         Event.removeEventListener("notification", handleNotification);
-        Event.removeEventListener("error", handleError);
-
         Event.close();
     };
 }, []);
