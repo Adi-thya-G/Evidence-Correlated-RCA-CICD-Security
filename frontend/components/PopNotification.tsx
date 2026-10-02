@@ -81,12 +81,13 @@ function PopNotification() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [, setTick] = useState(0);
 
-  // Live stream from the backend
+  // Live stream from the backend 
   useEffect(() => {
     const es = new EventSource(EVENTS_URL, { withCredentials: true });
 
     es.addEventListener("notification", (e) => {
       try {
+        console.log("Received notification event:", e.data);
         const incoming: Notification = JSON.parse((e as MessageEvent).data);
         setNotifications((prev) =>
           prev.some((n) => n.id === incoming.id)
