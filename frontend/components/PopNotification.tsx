@@ -1,101 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   GitBranch,
   Play,
   CheckCircle2,
   ShieldAlert,
-  ShieldCheck,
   GitPullRequest,
   Ban,
-  X,
   Bell,
   Trash2,
 } from "lucide-react";
 
 import { FaGithub } from "react-icons/fa";
 
-const dummyNotifications = [
-  {
-    id: 1,
-    type: "github",
-    title: "GitHub Connected",
-    message: "Your GitHub account was successfully connected.",
-    time: "2 min ago",
-    unread: true,
-  },
-  {
-    id: 2,
-    type: "repository",
-    title: "Repository Added",
-    message: "Evidence-Correlated-RCA-CICD-Security was added successfully.",
-    time: "5 min ago",
-    unread: true,
-  },
-  {
-    id: 3,
-    type: "pipeline",
-    title: "Pipeline Started",
-    message: "Analysis has started for the main branch.",
-    time: "8 min ago",
-    unread: true,
-  },
-  {
-    id: 4,
-    type: "sonarqube",
-    title: "SonarQube Analysis Started",
-    message: "SonarQube is analyzing your latest commit.",
-    time: "10 min ago",
-    unread: false,
-  },
-  {
-    id: 5,
-    type: "sonarqube",
-    title: "SonarQube Analysis Completed",
-    message: "Analysis completed with 12 issues detected.",
-    time: "12 min ago",
-    unread: false,
-  },
-  {
-    id: 6,
-    type: "security",
-    title: "Security Scan Started",
-    message: "Semgrep, Trivy, and Gitleaks scans are now running.",
-    time: "15 min ago",
-    unread: false,
-  },
-  {
-    id: 7,
-    type: "security",
-    title: "Security Issues Found",
-    message: "The security scan detected vulnerabilities that require attention.",
-    time: "18 min ago",
-    unread: false,
-  },
-  {
-    id: 8,
-    type: "correlation",
-    title: "Root Cause Analysis Completed",
-    message: "Findings have been correlated with commits to identify possible root causes.",
-    time: "22 min ago",
-    unread: false,
-  },
-  {
-    id: 9,
-    type: "pipeline",
-    title: "Pipeline Completed",
-    message: "All analysis stages completed successfully.",
-    time: "25 min ago",
-    unread: false,
-  },
-  {
-    id: 10,
-    type: "deployment",
-    title: "Deployment Blocked",
-    message: "Deployment was blocked because critical findings were detected.",
-    time: "30 min ago",
-    unread: false,
-  },
-];
+// Change this to the SSE route exposed by event.controller
+const EVENTS_URL = "/api/events";
+
+type Notification = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  createdAt: string;
+  unread: boolean;
+};
 
 const notificationConfig: Record<
   string,
@@ -142,35 +69,70 @@ const notificationConfig: Record<
   },
 };
 
-function PopNotification() {
-  const [notifications, setNotifications] =
-    useState(dummyNotifications);
+const timeAgo = (iso: string) => {
+  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hr ago`;
+  return `${Math.floor(seconds / 86400)} d ago`;
+};
 
-  const unreadCount = notifications.filter(
-    (notification) => notification.unread
-  ).length;
+function PopNotification() {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [, setTick] = useState(0);
+
+  // Live stream from the backend
+  useEffect(() => {
+    const es = new EventSource(EVENTS_URL, { withCredentials: true });
+
+    es.addEventListener("notification", (e) => {
+      try {
+        const incoming: Notification = JSON.parse((e as MessageEvent).data);
+        setNotifications((prev) =>
+          prev.some((n) => n.id === incoming.id)
+            ? prev
+            : [incoming, ...prev].slice(0, 50), // newest first, keep last 50
+        );
+      } catch (err) {
+        console.error("Invalid notification payload", err);
+      }
+    });
+
+    es.onerror = () => {
+      // EventSource reconnects automatically
+      console.warn("Notification stream disconnected, retrying...");
+    };
+
+    return () => es.close();
+  }, []);
+
+  // Refresh the relative times every minute
+  useEffect(() => {
+    const timer = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const unreadCount = notifications.filter((n) => n.unread).length;
 
   const clearAll = () => {
     setNotifications([]);
   };
 
   const markAllAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+  };
+
+  const markAsRead = (id: string) => {
     setNotifications((prev) =>
-      prev.map((notification) => ({
-        ...notification,
-        unread: false,
-      }))
+      prev.map((n) => (n.id === id ? { ...n, unread: false } : n)),
     );
   };
 
   return (
     <div className="absolute right-4 top-4 z-50 w-105 max-md:w-[calc(100vw-2rem)] h-120 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden flex flex-col">
-
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200">
-
         <div className="flex items-center justify-between">
-
           <div className="flex items-center gap-2">
             <div className="relative">
               <Bell size={18} className="text-gray-800" />
@@ -215,10 +177,8 @@ function PopNotification() {
 
       {/* Notification List */}
       <div className="flex-1 overflow-y-auto">
-
         {notifications.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center px-6">
-
             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
               <Bell size={20} className="text-gray-400" />
             </div>
@@ -230,7 +190,6 @@ function PopNotification() {
             <p className="text-xs text-gray-400 mt-1 text-center">
               Pipeline updates and security events will appear here.
             </p>
-
           </div>
         ) : (
           notifications.map((notification) => {
@@ -243,13 +202,11 @@ function PopNotification() {
             return (
               <div
                 key={notification.id}
+                onClick={() => markAsRead(notification.id)}
                 className={`relative flex gap-3 px-4 py-3.5 border-b border-gray-100 transition hover:bg-gray-50 cursor-pointer ${
-                  notification.unread
-                    ? "bg-blue-50/40"
-                    : "bg-white"
+                  notification.unread ? "bg-blue-50/40" : "bg-white"
                 }`}
               >
-
                 {/* Unread indicator */}
                 {notification.unread && (
                   <span className="absolute left-1.5 top-5 w-1.5 h-1.5 rounded-full bg-blue-600" />
@@ -259,31 +216,24 @@ function PopNotification() {
                 <div
                   className={`shrink-0 w-9 h-9 rounded-lg ${config.bgClass} flex items-center justify-center`}
                 >
-                  <Icon
-                    size={17}
-                    className={config.iconClass}
-                  />
+                  <Icon size={17} className={config.iconClass} />
                 </div>
 
                 {/* Content */}
                 <div className="min-w-0 flex-1">
-
                   <div className="flex items-start justify-between gap-2">
-
                     <p className="text-xs font-semibold text-gray-900 leading-4">
                       {notification.title}
                     </p>
 
                     <span className="shrink-0 text-[10px] text-gray-400">
-                      {notification.time}
+                      {timeAgo(notification.createdAt)}
                     </span>
-
                   </div>
 
                   <p className="mt-1 text-[11px] leading-4 text-gray-500">
                     {notification.message}
                   </p>
-
                 </div>
               </div>
             );

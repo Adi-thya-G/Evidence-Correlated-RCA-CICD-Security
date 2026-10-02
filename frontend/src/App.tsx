@@ -8,7 +8,7 @@ import { useRepoStore } from "@/stores/repoStore";
 import { Toaster } from "sonner";
 import {Bell} from "lucide-react"
 import PopNotification from "@root/components/PopNotification";
-import {Event} from "@/utils/Event";
+
 
 
 function App() {
@@ -51,7 +51,7 @@ function App() {
   }, [defualt]);
 
 useEffect(() => {
-  const eventSource = Event;
+  const eventSource = new EventSource(import.meta.env.VITE_API_BASE_URL+"/api/v1/event", { withCredentials: true });
 
   eventSource.onopen = () => {
     console.log("SSE connected");

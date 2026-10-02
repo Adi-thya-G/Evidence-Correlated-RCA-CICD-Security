@@ -12,7 +12,7 @@ import mongoose from "mongoose";
 import { runSecurityScan } from "@utils/RunSecurityScan";
 import { producer } from "@kafka/producer";
 import { SecurityScanReport } from "@modules/SecurityScannerReport";
-import {sendEventToUser} from "@controllers/event.controller"
+import { notify } from "@utils/notify";
 
 export const webHookHandler = asyncHandler(async (req, res) => {
   const signature = req.headers["x-hub-signature-256"] as string;
@@ -25,6 +25,7 @@ export const webHookHandler = asyncHandler(async (req, res) => {
 
   if (
     !signature ||
+    signature.length !== expected.length ||
     !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
   ) {
     return res.status(401).send("Invalid signature");
@@ -33,21 +34,26 @@ export const webHookHandler = asyncHandler(async (req, res) => {
   const event = req.headers["x-github-event"];
   const payload = JSON.parse(req.body.toString());
 
-   const installationId = payload.installation.id;
-   console.log("installationId", installationId)
-    await sendEventToUser(undefined,
-      installationId,
-      "notification",{
-      type:payload.action,
-      payload:payload
-    })
+  // some GitHub events carry no installation object
+  const installationId = payload.installation?.id;
 
-  //
   if (event === "installation") {
-   
-
     if (payload.action === "created") {
-      await CreateWebHooks(payload.installation.id, payload); // await this — don't fire-and-forget
+      await CreateWebHooks(installationId, payload);
+
+      await notify(installationId, {
+        type: "github",
+        title: "GitHub Connected",
+        message: "Your GitHub account was successfully connected.",
+      });
+
+      for (const repo of payload.repositories ?? []) {
+        await notify(installationId, {
+          type: "repository",
+          title: "Repository Added",
+          message: `${repo.name} was added successfully.`,
+        });
+      }
     } else if (payload.action === "deleted") {
       await Installation.updateOne(
         { installationId },
@@ -67,21 +73,34 @@ export const webHookHandler = asyncHandler(async (req, res) => {
       console.log("unhandled installation action:", payload.action);
     }
   } else if (event === "push") {
+    const branch = payload.ref?.replace("refs/heads/", "") ?? "main";
+
+    await notify(installationId, {
+      type: "pipeline",
+      title: "Pipeline Started",
+      message: `Analysis has started for the ${branch} branch.`,
+    });
+
     const response = await handlePushEvent(payload);
-    const key = await projectKey(
-      payload.installation.id,
-      payload.repository.id,
-    );
+    const key = await projectKey(installationId, payload.repository.id);
+
+    await notify(installationId, {
+      type: "sonarqube",
+      title: "SonarQube Analysis Started",
+      message: "SonarQube is analyzing your latest commit.",
+    });
+
     await runSonarQubeScanner(response, key);
 
     const ownerId = payload.organization?.id ?? payload.repository.owner.id;
     const user = await User.findOne({ githubId: ownerId }, { _id: 1 });
-   
-    const sonarReport = await SonarQubeReport.findOneAndUpdate(
+
+    await SonarQubeReport.findOneAndUpdate(
       { projectKey: key },
       {
         accountId: user?._id as mongoose.Types.ObjectId,
         repo_id: payload?.repository?.id,
+        installationId, // needed so the SonarQube webhook can notify the right user
       },
       {
         upsert: true,
@@ -91,12 +110,18 @@ export const webHookHandler = asyncHandler(async (req, res) => {
 
     const userId = user?._id;
     const repoId = payload.repository.id;
-    const branch = payload.repository.branch;
+
+    await notify(installationId, {
+      type: "security",
+      title: "Security Scan Started",
+      message: "Semgrep, Trivy, and Gitleaks scans are now running.",
+    });
+
     runSecurityScan(response, {
       accountId: String(userId),
       repo_id: repoId,
       projectKey: key,
-      branch: branch ?? "main",
+      branch: payload.repository.branch ?? branch,
       scriptPath:
         "D:/Evidence-Correlated-RCA-CICD-Security/backend/scripts/scan-and-store.js",
     });
@@ -156,18 +181,21 @@ export const webHookHandler = asyncHandler(async (req, res) => {
           },
         );
       }
+
+      await notify(installationId, {
+        type: "repository",
+        title: "Repository Added",
+        message: `${repo.name} was added successfully.`,
+      });
     }
   } else {
-    console.log(event, payload.repository.owner.id);
+    console.log(event, payload.repository?.owner?.id);
   }
 
   res.send("0k");
 });
 
-
-
-
-// here sonarQube report is add sonarQube report and
+// SonarQube calls this when an analysis finishes.
 export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
   const payload = req.body;
   res.status(200).send("Ok");
@@ -175,7 +203,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
   if (payload.status !== "SUCCESS") return;
   const projectKey = payload.project.key;
   const branch = payload.branch?.name ?? "main";
-  const commitSha = payload.revision; // ← Sonar sends this IF you pass sonar.scm.revision at scan time
+  const commitSha = payload.revision; // Sonar sends this IF you pass sonar.scm.revision at scan time
   const analysedAt = payload.analysedAt
     ? new Date(payload.analysedAt)
     : new Date();
@@ -184,6 +212,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
     fetchSonarIssues(projectKey, branch),
     fetchSonarHotspots(projectKey, branch),
   ]);
+
   const report = await SonarQubeReport.findOneAndUpdate(
     {
       projectKey,
@@ -200,15 +229,28 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
       hotspots,
       totalIssues: issues.length,
       totalHotspots: hotspots.length,
-      analysedAt: payload.analysedAt
-        ? new Date(payload.analysedAt)
-        : new Date(),
+      analysedAt,
       rawPayload: payload,
     },
     { upsert: true, new: true },
   );
 
-  console.log(report.accountId);
+  const installationId = report.installationId;
+
+  await notify(installationId, {
+    type: "sonarqube",
+    title: "SonarQube Analysis Completed",
+    message: `Analysis completed with ${issues.length} issues detected.`,
+  });
+
+  if (payload.qualityGate?.status === "ERROR") {
+    await notify(installationId, {
+      type: "deployment",
+      title: "Deployment Blocked",
+      message:
+        "Deployment was blocked because critical findings were detected.",
+    });
+  }
 
   if (commitSha) {
     const accountId = report.accountId;
@@ -243,6 +285,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
         accountId,
         repo_id: report.repo_id,
       });
+
       await producer.send({
         topic: "raw-findings",
         messages: [
@@ -253,11 +296,43 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
               repo_id: report.repo_id,
               commitSha,
               cloneUrl: security?.repoPath,
-              installationId: security?.repoPath.split("\\")[4],
+              installationId: security?.repoPath?.split("\\")[4],
             }),
           },
         ],
       });
+
+      await notify(installationId, {
+        type: "correlation",
+        title: "Root Cause Analysis Started",
+        message:
+          "Findings are being correlated with commits to identify root causes.",
+      });
     }
   }
 });
+
+/*
+ * Add to the SonarQubeReport schema:
+ *   installationId: { type: Number, index: true },
+ *
+ * Call these from runSecurityScan / your Kafka consumer when each stage ends:
+ *
+ *   await notify(installationId, {
+ *     type: "security",
+ *     title: "Security Issues Found",
+ *     message: "The security scan detected vulnerabilities that require attention.",
+ *   });
+ *
+ *   await notify(installationId, {
+ *     type: "correlation",
+ *     title: "Root Cause Analysis Completed",
+ *     message: "Findings have been correlated with commits to identify possible root causes.",
+ *   });
+ *
+ *   await notify(installationId, {
+ *     type: "pipeline",
+ *     title: "Pipeline Completed",
+ *     message: "All analysis stages completed successfully.",
+ *   });
+ */
