@@ -37,7 +37,7 @@ export const webHookHandler = asyncHandler(async (req, res) => {
 
   if (event === "installation") {
     const installationId = payload.installation.id;
-    sendEventToUser(undefined,installationId,"notification",{
+    await sendEventToUser(undefined,installationId,"notification",{
       type:payload.action,
       payload:payload
     })
