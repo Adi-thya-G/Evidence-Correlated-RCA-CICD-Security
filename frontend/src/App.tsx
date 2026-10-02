@@ -50,33 +50,7 @@ function App() {
     }
   }, [defualt]);
 
-useEffect(() => {
-  const eventSource = new EventSource(import.meta.env.VITE_API_BASE_URL+"/api/v1/event", { withCredentials: true });
 
-  eventSource.onopen = () => {
-    console.log("SSE connected");
-  };
-
-  eventSource.addEventListener("notification", (event)=>{
-    console.log("notification event:", event.data);
-  })
-
-  eventSource.onmessage = (event) => {
-    console.log("SSE event:", event.data);
-
-    // handle notification here
-  };
-
-  eventSource.onerror = (error) => {
-    console.error("SSE error:", error);
-  };
-
-  return () => {
-    console.log("SSE disconnected");
-    eventSource.close();
-    eventSource.removeEventListener("notification", () => {});
-  };
-}, []);
 
 
   // this useeffect hooks is used handle current activity navbar;

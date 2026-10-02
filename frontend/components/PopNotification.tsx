@@ -13,7 +13,7 @@ import {
 import { FaGithub } from "react-icons/fa";
 
 // Change this to the SSE route exposed by event.controller
-const EVENTS_URL = "/api/events";
+const EVENTS_URL = import.meta.env.VITE_API_BASE_URL+"/api/v1/events";
 
 type Notification = {
   id: string;
