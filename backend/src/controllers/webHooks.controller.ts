@@ -32,12 +32,13 @@ export const webHookHandler = asyncHandler(async (req, res) => {
 
   const event = req.headers["x-github-event"];
   const payload = JSON.parse(req.body.toString());
-  const accountId=payload.repository.owner.id
 
   //
   if (event === "installation") {
     const installationId = payload.installation.id;
-    await sendEventToUser(undefined,installationId,"notification",{
+    await sendEventToUser(undefined,
+      installationId,
+      "notification",{
       type:payload.action,
       payload:payload
     })

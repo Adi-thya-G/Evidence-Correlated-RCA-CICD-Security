@@ -6,12 +6,18 @@ import { useEffect, useState } from "react";
 import { useUserStore } from "@/stores/userAuth";
 import { useRepoStore } from "@/stores/repoStore";
 import { Toaster } from "sonner";
+import {Bell} from "lucide-react"
+import PopNotification from "@root/components/PopNotification";
+import {Event} from "@/utils/Event";
 
-const url=import.meta.env.VITE_API_BASE_URL+"/api/v1/event"
 
 function App() {
 
-   const Event=new EventSource(url,{withCredentials:true})
+  
+
+   const [notification, setNotification]=useState<boolean>(false);
+
+
 
   //hook that will fetch data from bakend about repository list
   const repoInitialFetch = useRepoStore((s) => s.initialFetch);
@@ -44,24 +50,34 @@ function App() {
     }
   }, [defualt]);
 
+useEffect(() => {
+  const eventSource = Event;
 
-  useEffect(() => {
+  eventSource.onopen = () => {
+    console.log("SSE connected");
+  };
 
-    const handleNotification = (event: MessageEvent) => {
-        console.log("Notification:", event.data);
+  eventSource.addEventListener("notification", (event)=>{
+    console.log("notification event:", event.data);
+  })
 
-        const data = JSON.parse(event.data);
-        console.log(data);
-    };
+  eventSource.onmessage = (event) => {
+    console.log("SSE event:", event.data);
 
+    // handle notification here
+  };
 
-    Event.addEventListener("notification", handleNotification);
+  eventSource.onerror = (error) => {
+    console.error("SSE error:", error);
+  };
 
-    return () => {
-        Event.removeEventListener("notification", handleNotification);
-        Event.close();
-    };
+  return () => {
+    console.log("SSE disconnected");
+    eventSource.close();
+    eventSource.removeEventListener("notification", () => {});
+  };
 }, []);
+
 
   // this useeffect hooks is used handle current activity navbar;
   useEffect(() => {
@@ -71,7 +87,11 @@ function App() {
   }, [location]);
 
   return (
-    <div className="w-full h-screen flex flex-row overflow-y-hidden">
+    <div className="w-full h-screen flex flex-row overflow-y-hidden" onClick={()=>{
+      if(notification){
+        setNotification(false)
+      }
+    }}>
       <Toaster position="top-right"/>
       <SideNav />
 
@@ -80,7 +100,7 @@ function App() {
         <header className="w-full min-h-17 border-b border-gray-300 flex items-center justify-between px-3">
           <h2 className="text-xl text-black font-serif font-bold">{header}</h2>
 
-          <div>
+          <div className="flex items-center gap-3">
             <select
               className="p-2 border rounded-sm text-[14px] outline-none  bg-mauve-50 border-gray-400"
               value={selectedRepo}
@@ -98,10 +118,21 @@ function App() {
                 </option>
               ))}
             </select>
+             <div className="relative rounded-full w-8 h-8 flex items-center 
+             justify-center bg-mauve-50 border border-gray-400 cursor-pointer" 
+             onClick={()=>{setNotification((prev) => !prev)}}>
+              <span className="absolute -top-2/5 -right-1/4 text-center w-6 h-6 font-serif
+               rounded-full text-[13px] text-white bg-red-500 border border-white ">20</span>
+              <Bell size={18} className="text-gray-800" />
           </div>
+          </div>
+         
         </header>
          
-        <div className="overflow-y-auto">
+        <div className="overflow-y-auto relative">
+          {
+            notification && <PopNotification/>
+          }
         
           <Outlet />
         </div>
