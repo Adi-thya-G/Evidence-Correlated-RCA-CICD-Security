@@ -7,6 +7,9 @@ import { StatusBadge } from './StatusBadge'
 const HEADERS = ['Finding', 'Severity', 'Scanner', 'Introduced by', 'Status', 'Detected']
 
 function Row({ f, last, onOpen }: { f: FindingItem; last: boolean; onOpen: (f: FindingItem) => void }) {
+ 
+  const author = JSON.parse(JSON.stringify(f?.commit))?.author;
+  const email = JSON.parse(JSON.stringify(f?.commit))?.email;
   return (
     <tr
       tabIndex={0}
@@ -24,7 +27,7 @@ function Row({ f, last, onOpen }: { f: FindingItem; last: boolean; onOpen: (f: F
       <td className='px-2'>
         <div className='p-1 bg-mauve-200 text-gray-700 text-[12px] w-min rounded-sm border border-gray-300'>{f.tool}</div>
       </td>
-      <td className='px-2'><Author f={f} /></td>
+      <td className='px-2'><Author author={author} email={email} /></td>
       <td className='px-2'><StatusBadge status={f.status} /></td>
       <td className='px-2 text-gray-400 font-mono text-[12px] whitespace-nowrap'>{ago(f.enrichedAt)}</td>
     </tr>
@@ -44,7 +47,7 @@ export function FindingsTable({ items, onOpen }: { items: FindingItem[]; onOpen:
         </thead>
         <tbody>
           {items.map((f, i) => (
-            <Row key={f._id} f={f} last={i === items.length - 1} onOpen={onOpen} />
+            <Row key={f.id} f={f} last={i === items.length - 1} onOpen={onOpen} />
           ))}
         </tbody>
       </table>

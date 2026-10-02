@@ -1,20 +1,24 @@
-export type Sev = 'critical' | 'high' | 'medium' | 'low'
-export type Status = 'pending' | 'triaged' | 'resolved'
-export type View = 'list' | 'commits'
+export type Tool = 'sonarqube' | 'semgrep' | 'trivy' | 'gitleaks'
+export type Severity = 'critical' | 'high' | 'medium' | 'low'
+export type Status = 'pending' | 'triaged' | 'resolved' | 'false_positive' // mirror backend STATUSES
+
+export interface CommitInfo {
+  hash: string
+  author: string
+  email?: string
+  date: string
+  summary: string
+}
 
 export interface FindingItem {
-  _id: string
-  tool: string
+  id: string
+  tool: Tool
   ruleId: string
-  severity: string // raw scanner value
+  severity: Severity
   message: string
   file: string
   startLine: number
-  git_author_name: string
-  git_commit_hash: string
-  git_commit_date: string
-  git_commit_summary: string
-  git_diff?: string
   status: Status
   enrichedAt: string
+  commit: CommitInfo | null
 }

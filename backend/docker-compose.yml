@@ -201,6 +201,24 @@ services:
     networks:
       - rca-net
 
+  redis:
+    image: redis:7.2-alpine
+    container_name: rca-redis
+    restart: unless-stopped
+    stop_grace_period: 15s
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "6379:6379"      # optional: only needed to debug from the host
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - rca-net
+
 networks:
   rca-net:
     driver: bridge
@@ -208,6 +226,7 @@ networks:
 volumes:
   qdrant-data:
   sonar-db-data:
+  redis-data: 
   sonar-data:
   sonar-extensions:
   sonar-logs:

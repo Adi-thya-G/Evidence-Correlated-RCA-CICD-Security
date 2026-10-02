@@ -6,7 +6,12 @@ import { useEffect, useState } from "react";
 import { useUserStore } from "@/stores/userAuth";
 import { useRepoStore } from "@/stores/repoStore";
 import { Toaster } from "sonner";
+
+const url=import.meta.env.VITE_API_BASE_URL+"/api/v1/event"
+
 function App() {
+
+   const Event=new EventSource(url,{withCredentials:true})
 
   //hook that will fetch data from bakend about repository list
   const repoInitialFetch = useRepoStore((s) => s.initialFetch);
@@ -38,6 +43,37 @@ function App() {
       setSelectedRepo(defualt.name);
     }
   }, [defualt]);
+
+
+  useEffect(() => {
+    const handleOpen = (event: Event) => {
+        console.log("SSE connected", event);
+    };
+
+    const handleNotification = (event: MessageEvent) => {
+        console.log("Notification:", event);
+
+        const data = JSON.parse(event.data);
+        console.log(data);
+    };
+
+    const handleError = (event: Event) => {
+        console.log("SSE error:", event);
+    };
+
+    Event.addEventListener("open", handleOpen);
+    Event.addEventListener("notification", handleNotification);
+    Event.addEventListener("push", handleNotification);
+    Event.addEventListener("error", handleError);
+
+    return () => {
+        Event.removeEventListener("open", handleOpen);
+        Event.removeEventListener("notification", handleNotification);
+        Event.removeEventListener("error", handleError);
+
+        Event.close();
+    };
+}, []);
 
   // this useeffect hooks is used handle current activity navbar;
   useEffect(() => {

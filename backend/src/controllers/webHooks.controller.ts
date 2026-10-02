@@ -12,6 +12,7 @@ import mongoose from "mongoose";
 import { runSecurityScan } from "@utils/RunSecurityScan";
 import { producer } from "@kafka/producer";
 import { SecurityScanReport } from "@modules/SecurityScannerReport";
+import {sendEventToUser} from "@controllers/event.controller"
 
 export const webHookHandler = asyncHandler(async (req, res) => {
   const signature = req.headers["x-hub-signature-256"] as string;
@@ -66,6 +67,17 @@ export const webHookHandler = asyncHandler(async (req, res) => {
 
     const ownerId = payload.organization?.id ?? payload.repository.owner.id;
     const user = await User.findOne({ githubId: ownerId }, { _id: 1 });
+    sendEventToUser(user?._id.toString() as string, "push", {
+      type: "push",
+      payload: {
+        repository: {
+          id: payload.repository.id,
+          name: payload.repository.name,
+          fullName: payload.repository.full_name,
+          private: payload.repository.private,
+        }
+    }
+  })
     const sonarReport = await SonarQubeReport.findOneAndUpdate(
       { projectKey: key },
       {
@@ -152,6 +164,10 @@ export const webHookHandler = asyncHandler(async (req, res) => {
 
   res.send("0k");
 });
+
+
+
+
 // here sonarQube report is add sonarQube report and
 export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
   const payload = req.body;
