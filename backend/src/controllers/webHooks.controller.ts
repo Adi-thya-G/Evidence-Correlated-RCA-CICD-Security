@@ -150,7 +150,7 @@ export const webHookHandler = asyncHandler(async (req, res) => {
       }
     }
   } else {
-    console.log(event, payload);
+    console.log(event, payload.repository.owner.id);
   }
 
   res.send("0k");
