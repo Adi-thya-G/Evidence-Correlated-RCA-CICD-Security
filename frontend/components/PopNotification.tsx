@@ -13,7 +13,7 @@ import {
 import { FaGithub } from "react-icons/fa";
 
 // Change this to the SSE route exposed by event.controller
-const EVENTS_URL = import.meta.env.VITE_API_BASE_URL+"/api/v1/events";
+const EVENTS_URL = import.meta.env.VITE_API_BASE_URL+"/api/v1/event";
 
 type Notification = {
   id: string;
@@ -87,7 +87,7 @@ function PopNotification() {
 
     es.addEventListener("notification", (e) => {
       try {
-        console.log("Received notification  event :", e.data);
+        console.log("Received notification  event :", e);
         const incoming: Notification = JSON.parse((e as MessageEvent).data);
         setNotifications((prev) =>
           prev.some((n) => n.id === incoming.id)

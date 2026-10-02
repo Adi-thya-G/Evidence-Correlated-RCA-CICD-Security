@@ -61,11 +61,7 @@ function App() {
   }, [location]);
 
   return (
-    <div className="w-full h-screen flex flex-row overflow-y-hidden" onClick={()=>{
-      if(notification){
-        setNotification(false)
-      }
-    }}>
+    <div className="w-full h-screen flex flex-row overflow-y-hidden">
       <Toaster position="top-right"/>
       <SideNav />
 
