@@ -34,7 +34,7 @@ export const webHookHandler = asyncHandler(async (req, res) => {
   const payload = JSON.parse(req.body.toString());
   const accountId=payload.repository.owner.id
 
-  
+  //
   if (event === "installation") {
     const installationId = payload.installation.id;
     await sendEventToUser(undefined,installationId,"notification",{
