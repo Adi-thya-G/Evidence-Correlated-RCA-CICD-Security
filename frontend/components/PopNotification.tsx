@@ -87,7 +87,7 @@ function PopNotification() {
 
     es.addEventListener("notification", (e) => {
       try {
-        console.log("Received notification event:", e.data);
+        console.log("Received notification  event :", e.data);
         const incoming: Notification = JSON.parse((e as MessageEvent).data);
         setNotifications((prev) =>
           prev.some((n) => n.id === incoming.id)
