@@ -2,7 +2,7 @@ import { Installation } from "@modules/Installation";
 import { User } from "@modules/User";
 import { asyncHandler } from "@utils/asyncHandler";
 import { response, type Response } from "express";
-
+import {NotificationModel} from "@modules/Notification"
 const connectedClients = new Map<string, Response[]>();
 
 const getEvents = asyncHandler(async (req, res) => {
@@ -110,6 +110,7 @@ const sendEventToUser = async (
     }
 
     const clients = connectedClients.get(userIdString);
+   await NotificationModel.insertOne({userId:new Object(userIdString),type:data?.type,title:data?.title,message:data?.message,})
      console.log("clients",clients)
     if (!clients) {
         return;

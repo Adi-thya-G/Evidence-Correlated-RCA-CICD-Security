@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import { sendEventToUser } from "@controllers/event.controller";
-
 export type NotificationType =
   | "github"
   | "repository"
