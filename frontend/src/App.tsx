@@ -51,7 +51,7 @@ function App() {
     };
 
     const handleNotification = (event: MessageEvent) => {
-        console.log("Notification:", event);
+        console.log("Notification:", event.data);
 
         const data = JSON.parse(event.data);
         console.log(data);
@@ -63,7 +63,6 @@ function App() {
 
     Event.addEventListener("open", handleOpen);
     Event.addEventListener("notification", handleNotification);
-    Event.addEventListener("push", handleNotification);
     Event.addEventListener("error", handleError);
 
     return () => {

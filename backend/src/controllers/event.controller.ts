@@ -1,5 +1,7 @@
+import { Installation } from "@modules/Installation";
+import { User } from "@modules/User";
 import { asyncHandler } from "@utils/asyncHandler";
-import type { Response } from "express";
+import { response, type Response } from "express";
 
 const connectedClients = new Map<string, Response[]>();
 
@@ -72,17 +74,33 @@ const getEvents = asyncHandler(async (req, res) => {
     console.log("Connected clients:", connectedClients.size);
 });
 
-const sendEventToUser = (userId: string, event: string, data: unknown) => {
-    const clients = connectedClients.get(userId);
-
-    if (!clients) {
-        return;
-    }
-
-    clients.forEach((client) => {
-        client.write(`event: ${event}\n`);
-        client.write(`data: ${JSON.stringify(data)}\n\n`);
-    });
+const sendEventToUser = async(userId:string|undefined=undefined,installationId :number|undefined=undefined, 
+  event: string, data: unknown) => {
+  
+  let userIdString = undefined;
+  if(userId!=undefined){
+       userIdString = userId
+  }  
+  if(installationId!=undefined)
+  {
+    const installation=await Installation.findOne({installationId:installationId})
+    
+    const user=await User.findOne({githubId:installation?.accountId})
+    if(!user)
+       return
+    userIdString=user._id.toString(); 
+    
+  }
+  if(userIdString!=undefined){
+    const clinet=connectedClients.get(userIdString);
+     const message=`event:${event}\n
+      data:${data}
+      `
+    clinet?.forEach((res)=>{
+      res.write(message)
+    })
+  }
+     
 };
 
 export { getEvents, sendEventToUser };

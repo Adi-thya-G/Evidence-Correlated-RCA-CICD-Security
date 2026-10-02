@@ -36,6 +36,7 @@ export const webHookHandler = asyncHandler(async (req, res) => {
 
   if (event === "installation") {
     const installationId = payload.installation.id;
+    
 
     if (payload.action === "created") {
       await CreateWebHooks(payload.installation.id, payload); // await this — don't fire-and-forget
@@ -67,17 +68,7 @@ export const webHookHandler = asyncHandler(async (req, res) => {
 
     const ownerId = payload.organization?.id ?? payload.repository.owner.id;
     const user = await User.findOne({ githubId: ownerId }, { _id: 1 });
-    sendEventToUser(user?._id.toString() as string, "push", {
-      type: "push",
-      payload: {
-        repository: {
-          id: payload.repository.id,
-          name: payload.repository.name,
-          fullName: payload.repository.full_name,
-          private: payload.repository.private,
-        }
-    }
-  })
+   
     const sonarReport = await SonarQubeReport.findOneAndUpdate(
       { projectKey: key },
       {
