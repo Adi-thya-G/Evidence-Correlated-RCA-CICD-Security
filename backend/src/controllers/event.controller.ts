@@ -81,6 +81,7 @@ const sendEventToUser = async (
     data: unknown
 ) => {
 
+   console.log("inside send Event",userId,installationId,event,data)
     let userIdString: string | undefined = userId;
 
     if (installationId !== undefined) {
