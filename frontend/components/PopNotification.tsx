@@ -83,6 +83,7 @@ function PopNotification() {
   const { updateNotification } = useNotification();
 
   // Live stream from the backend 
+  //
   useEffect(() => {
     const es = new EventSource(EVENTS_URL, { withCredentials: true });
 
