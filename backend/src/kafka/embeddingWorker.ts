@@ -4,7 +4,7 @@ import { SonarDataFetch } from '@modules/SonarDataFetch';
 import { ensureRepoCheckedOut } from '@utils/gitEvidence/repoManager';
 import { collectEvidenceForFindings } from '@utils/gitEvidence/evidenceCollector';
 import type { ProducerMessage, NormalizedFinding } from '../types/gitEvidence.types';
-
+import { notify } from '@utils/notify';
 
 const consumer = kafka.consumer({ groupId: 'embedding-workers' });
 
@@ -40,6 +40,12 @@ export async function startEmbeddingWorker() {
             'One or more required fields missing: accountId, repo_id, commitSha, installationId, cloneUrl'
           );
         }
+         await notify(installationId, {
+        type: "correlation",
+        title: "Root Cause Analysis Started",
+        message:
+          "Findings are being correlated with commits to identify root causes.",
+      });
 
         // 1. Ensure a local, full-history clone exists at the exact commit
         //    the scanner ran against. The returned `git` is rooted at

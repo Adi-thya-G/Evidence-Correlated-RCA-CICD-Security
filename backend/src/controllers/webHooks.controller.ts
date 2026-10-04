@@ -243,6 +243,8 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
     message: `Analysis completed with ${issues.length} issues detected.`,
   });
 
+  console.log(payload.qualityGate?.status === "ERROR","error")
+
   if (payload.qualityGate?.status === "ERROR") {
     await notify(installationId, {
       type: "deployment",
@@ -286,7 +288,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
         repo_id: report.repo_id,
       });
 
-       producer.send({
+      producer.send({
         topic: "raw-findings",
         messages: [
           {
@@ -302,12 +304,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
         ],
       });
 
-      await notify(installationId, {
-        type: "correlation",
-        title: "Root Cause Analysis Started",
-        message:
-          "Findings are being correlated with commits to identify root causes.",
-      });
+     
     }
   }
 });
