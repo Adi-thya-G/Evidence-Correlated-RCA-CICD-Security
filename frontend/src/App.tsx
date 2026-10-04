@@ -8,13 +8,14 @@ import { useRepoStore } from "@/stores/repoStore";
 import { Toaster } from "sonner";
 import {Bell} from "lucide-react"
 import PopNotification from "@root/components/PopNotification";
+import {useNotification} from "@/stores/useNotification"
 
 
 
 function App() {
 
-  
-
+   const notificationData=useNotification((s)=>s.notifications)
+   const fetchNotification=useNotification((s)=>s.fetchNotifications)
    const [notification, setNotification]=useState<boolean>(false);
 
 
@@ -39,8 +40,11 @@ function App() {
   // Fetch data about user and also repository
   useEffect(() => {
     initialFetch();
-    repoInitialFetch();
+    repoInitialFetch()
+    fetchNotification()
   }, [initialFetch, repoInitialFetch]);
+
+
 
   // Set selected repo when default repo arrives here setting selected repo as default repos
   useEffect(() => {
@@ -88,11 +92,14 @@ function App() {
                 </option>
               ))}
             </select>
+            
              <div className="relative rounded-full w-8 h-8 flex items-center 
              justify-center bg-mauve-50 border border-gray-400 cursor-pointer" 
              onClick={()=>{setNotification((prev) => !prev)}}>
-              <span className="absolute -top-2/5 -right-1/4 text-center w-6 h-6 font-serif
-               rounded-full text-[13px] text-white bg-red-500 border border-white ">20</span>
+              
+                <span className={`absolute -top-2/5 -right-1/4 text-center w-6 h-6 font-serif
+               rounded-full text-[13px] text-white bg-red-500 border border-white ${notificationData.length==0?"hidden":"block"}`}>{notificationData.length}</span>
+              
               <Bell size={18} className="text-gray-800" />
           </div>
           </div>

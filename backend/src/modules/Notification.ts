@@ -18,7 +18,7 @@ const notificationSchema=new Schema<Notification>({
   title:{type:String,required:true},
   message:{type:String,required:true},
   createdAt:{type:Date,default:Date.now},
-  unread:{type:Boolean,default:false}
+  unread:{type:Boolean,default:true}
 },{timestamps:true})
 
 export const NotificationModel = model<Notification>("Notification",notificationSchema)

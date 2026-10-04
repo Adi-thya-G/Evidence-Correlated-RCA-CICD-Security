@@ -9,7 +9,7 @@ import findingsRouter from "@routes/findings.router"
 import gitleakRouter from "@routes/gitleaks.router"
 import eventRouter from "@routes/event.route"
 import settingRouter from "@routes/setting.route"
-
+import NotificationRouter from "@routes/notification.route"
 const router=Router();
 
 router.use('/v1/auth',authLimiter,authRouter)
@@ -20,5 +20,6 @@ router.use('/v1/gitleaks',verifyToken,gitleakRouter)
 router.use('/v1/settings',verifyToken,settingRouter)
 router.use('/v1/findings', verifyToken, findingsRouter)
 router.use('/v1/event', verifyToken, eventRouter)
+router.use('/v1/notifications',verifyToken,NotificationRouter)
 
 export default router

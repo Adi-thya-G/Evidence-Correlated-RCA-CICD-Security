@@ -11,16 +11,17 @@ import {
 } from "lucide-react";
 
 import { FaGithub } from "react-icons/fa";
-import{useNotification} from "@/stores/useNotification"
+import { useNotification } from "@/stores/useNotification";
 // Change this to the SSE route exposed by event.controller
-const EVENTS_URL = import.meta.env.VITE_API_BASE_URL+"/api/v1/event";
+import { es } from "@root/config/eventSource";
 
 type Notification = {
-  id: string;
+  _id: string;
   type: string;
   title: string;
   message: string;
   createdAt: string;
+  updatedAt: string;
   unread: boolean;
 };
 
@@ -82,18 +83,25 @@ function PopNotification() {
   const [, setTick] = useState(0);
   const { updateNotification } = useNotification();
 
-  // Live stream from the backend 
-  useEffect(() => {
-    const es = new EventSource(EVENTS_URL, { withCredentials: true });
+  const {updateAll} =useNotification()
 
+  const [unreadCount,setUnreadCount]=useState(0);
+
+  const notificationIntialData = useNotification(
+    (s) => s.notifications,
+  ) as Notification[];
+
+  // Live stream from the backend
+  useEffect(() => {
     es.addEventListener("notification", (e) => {
       try {
         console.log("Received notification  event :", e);
         const incoming: Notification = JSON.parse((e as MessageEvent).data);
-        setNotifications((prev) =>
-          prev.some((n) => n.id === incoming.id)
-            ? prev
-            : [incoming, ...prev].slice(0, 50), // newest first, keep last 50
+        setNotifications(
+          (prev) =>
+            prev.some((n) => n._id === incoming._id)
+              ? prev
+              : [incoming, ...prev].slice(0, 50), // newest first, keep last 50
         );
       } catch (err) {
         console.error("Invalid notification payload", err);
@@ -108,13 +116,21 @@ function PopNotification() {
     return () => es.close();
   }, []);
 
+  useEffect(() => {
+    setNotifications(notificationIntialData);
+    console.log(notificationIntialData)
+    const count=notificationIntialData.filter((s)=>s.unread).length;
+    setUnreadCount(count)
+    console.log(count)
+  }, [notificationIntialData]);
+
   // Refresh the relative times every minute
   useEffect(() => {
     const timer = setInterval(() => setTick((t) => t + 1), 60_000);
     return () => clearInterval(timer);
   }, []);
 
-  const unreadCount = notifications.filter((n) => n.unread).length;
+
 
   const clearAll = () => {
     setNotifications([]);
@@ -122,14 +138,14 @@ function PopNotification() {
 
   const markAllAsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    updateAll()
   };
 
-  const markAsRead = (id: string) => {
+  const markAsRead = (_id: string) => {
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, unread: false } : n)),
+      prev.filter((n) => (n._id !=_id &&n)),
     );
-    updateNotification(id, { unread: false });
-
+    updateNotification(_id, { unread: false });
 
   };
 
@@ -206,8 +222,8 @@ function PopNotification() {
 
             return (
               <div
-                key={notification.id}
-                onClick={() => markAsRead(notification.id)}
+                key={notification._id}
+                onClick={() => markAsRead(notification._id)}
                 className={`relative flex gap-3 px-4 py-3.5 border-b border-gray-100 transition hover:bg-gray-50 cursor-pointer ${
                   notification.unread ? "bg-blue-50/40" : "bg-white"
                 }`}

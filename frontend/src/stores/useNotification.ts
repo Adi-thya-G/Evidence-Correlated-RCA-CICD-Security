@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import{GetNotification,UpdateNotification} from "@/api/notification"
+import{GetNotification,UpdateNotification,UpdateAll} from "@/api/notification"
 interface Notification {
   _id: string;
   type: string;
@@ -16,6 +16,7 @@ interface NotificationStore {
     id: string,
     updatedNotification: Partial<Notification>
   ) => void;
+  updateAll:()=>Promise<void>
 }
 
 export const useNotification = create<NotificationStore>((set) => ({
@@ -28,7 +29,7 @@ export const useNotification = create<NotificationStore>((set) => ({
       const response=await GetNotification();
 
       const data: Notification[] = response
-
+      console.log(data)
       set({
         notifications: data,
       });
@@ -39,17 +40,21 @@ export const useNotification = create<NotificationStore>((set) => ({
 
   updateNotification: async(id, updatedNotification) => {
     const response=await UpdateNotification(id)
+    console.log(response,"update")
     set((state) => ({
-      notifications: state.notifications.map((notification) =>
-        notification._id === id
-          ? {
-              ...notification,
-              unread: false,
-            }
-          : notification
+      notifications: state.notifications.filter((notification) =>
+        notification._id !=id &&  notification
       ),
     }));
   },
+  updateAll:async()=>{
+    const notification=await UpdateAll()
+    set({
+      ...notification
+    })
+
+
+  }
 }));
 
 export default useNotification;

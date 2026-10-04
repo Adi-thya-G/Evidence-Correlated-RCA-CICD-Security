@@ -6,7 +6,6 @@ interface Props {
 }
 
 export function Author({ author, email }: Props) {
-  console.log("Author component props:", { author, email });
   const name = author?.trim() || email?.trim() || "Unknown";
 
   return (
