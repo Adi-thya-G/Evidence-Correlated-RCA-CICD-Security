@@ -97,6 +97,7 @@ function PopNotification() {
       try {
         console.log("Received notification  event :", e);
         const incoming: Notification = JSON.parse((e as MessageEvent).data);
+        setUnreadCount((pre)=>pre+1)
         setNotifications(
           (prev) =>
             prev.some((n) => n._id === incoming._id)
