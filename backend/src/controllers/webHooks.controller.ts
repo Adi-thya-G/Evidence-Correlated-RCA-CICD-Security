@@ -286,7 +286,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
         repo_id: report.repo_id,
       });
 
-      await producer.send({
+       producer.send({
         topic: "raw-findings",
         messages: [
           {

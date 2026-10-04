@@ -99,11 +99,9 @@ function PopNotification() {
         const incoming: Notification = JSON.parse((e as MessageEvent).data);
         setUnreadCount((pre)=>pre+1)
         setNotifications(
-          (prev) =>
-            prev.some((n) => n._id === incoming._id)
-              ? prev
-              : [incoming, ...prev].slice(0, 50), // newest first, keep last 50
-        );
+          (prev) =>[incoming,...prev]) // newest first, keep last 50
+        
+      
       } catch (err) {
         console.error("Invalid notification payload", err);
       }
