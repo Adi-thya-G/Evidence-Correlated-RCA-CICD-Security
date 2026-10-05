@@ -9,6 +9,7 @@ import { embedPendingFindings } from '@services/embedPending';
 import { markResolved } from '@services/Persistfindings';
 import { EMBED_DIM } from '@services/embedder';
 import { initQdrant } from '@services/qdrant';
+import { correlateFindings } from '@services/correlate';
 const consumer = kafka.consumer({ groupId: 'embedding-workers' });
 
 // Per-message git-evidence concurrency. Kept low deliberately: Kafka already
@@ -90,6 +91,12 @@ await embedPendingFindings(accountId, repo_id);
 
 // 6. Resolve findings that vanished (Sonar scan is complete per commit)   
 const resolved = await markResolved(accountId, repo_id, 'sonarqube', commitSha);
+
+const clusters = await correlateFindings(accountId, repo_id, commitSha);
+
+
+console.log(`[key=${key}] Created ${clusters} correlation clusters`);
+
 console.log(`[key=${key}] Resolved ${resolved} findings`);
         console.log(`[key=${key}] Saved findings: ${result.upserted} new, ${result.modified} updated`);
       } catch (err) {
