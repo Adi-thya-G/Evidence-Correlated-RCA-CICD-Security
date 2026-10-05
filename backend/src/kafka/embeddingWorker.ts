@@ -5,6 +5,8 @@ import { ensureRepoCheckedOut } from '@utils/gitEvidence/repoManager';
 import { collectEvidenceForFindings } from '@utils/gitEvidence/evidenceCollector';
 import type { ProducerMessage, NormalizedFinding } from '../types/gitEvidence.types';
 import { notify } from '@utils/notify';
+import { embedPendingFindings } from '@services/embedPending';
+import { markResolved } from '@services/Persistfindings';
 
 const consumer = kafka.consumer({ groupId: 'embedding-workers' });
 
@@ -77,7 +79,16 @@ export async function startEmbeddingWorker() {
         console.log(`[key=${key}] Enriched ${enriched.length} findings for repo_id=${repo_id}`);
 
         // 4. Persist to MongoDB
-        const result = await persistEnrichedFindings(enriched, { accountId, repo_id, commitSha });
+      // 4. Persist to MongoDB
+const result = await persistEnrichedFindings(enriched, { accountId, repo_id, commitSha });
+console.log(`[key=${key}] Saved findings: ${result.upserted} new, ${result.modified} updated`);
+
+// 5. Embed only new/changed findings into Qdrant
+await embedPendingFindings(accountId, repo_id);
+
+// 6. Resolve findings that vanished (Sonar scan is complete per commit)
+const resolved = await markResolved(accountId, repo_id, 'sonarqube', commitSha);
+console.log(`[key=${key}] Resolved ${resolved} findings`);
         console.log(`[key=${key}] Saved findings: ${result.upserted} new, ${result.modified} updated`);
       } catch (err) {
         console.error(`[key=${key}] Failed to process Kafka message:`, err);
