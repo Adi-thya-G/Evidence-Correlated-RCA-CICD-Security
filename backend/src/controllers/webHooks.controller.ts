@@ -235,7 +235,7 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
     { upsert: true, new: true },
   );
 
-  const installationId = report.installationId;
+  const installationId = report?.installationId;
 
   await notify(installationId, {
     type: "sonarqube",
