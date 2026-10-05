@@ -19,6 +19,7 @@ import SonarQube from './pages/SonarQube.tsx';
 import Trivy from '@/pages/Trivy.tsx';
 import Gitleaks from './pages/Gitleaks.tsx';
 import NotFoundPage from './pages/NotFoundPage.tsx';
+import TeamAccess from "@root/components/TeamAccess.tsx"
 const router=createBrowserRouter([
   {
     path:"/login",
@@ -77,6 +78,9 @@ const router=createBrowserRouter([
         {
           path:"danger-zone",element:<DangerZone/>
         },
+        {
+          path:"team-access" ,element:<TeamAccess/>
+        }
        
        
        ]

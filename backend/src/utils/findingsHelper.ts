@@ -100,7 +100,7 @@ export function parseSort(sort: unknown): Record<string, 1 | -1> {
 }
 
 // ---- serializers ----
-const authorFromDiff = (diff?: string) => diff?.match(/^Author:\s*(.+?)\s*<[^>]+>/m)?.[1];
+export const authorFromDiff = (diff?: string) => diff?.match(/^Author:\s*(.+?)\s*<[^>]+>/m)?.[1];
 
 export const toCommit = (d: any, diffFallback?: string) => ({
   hash: d.git_commit_hash,

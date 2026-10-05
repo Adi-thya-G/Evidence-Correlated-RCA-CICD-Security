@@ -5,8 +5,9 @@ import ApiError from "@utils/ApiError";
 import ApiResponse from "@utils/ApiResponse";
 import { asyncHandler } from "@utils/asyncHandler";
 import { userSetupSettingService } from "@services/UserSetupService";
-import mongoose from "mongoose";
 
+import { Finding } from "@modules/finding.models";
+import { Types } from "mongoose";
 
 interface DangerZoneBody {
   Disconnect_repository?: boolean;
@@ -163,5 +164,68 @@ export const danger_zone_update = asyncHandler(async (req, res) => {
   return new ApiResponse(200,"danger-zone  is updated",response).send(res);
 });
 
+
+// get team information
+
+interface LastCommit {
+  hash: string | null;
+  shortHash: string | null;
+  date: Date | null;
+  summary: string | null;
+}
+
+interface ResponseInterface {
+  git_auth: string;
+  git_email: string;
+  findings: number;
+  last_commit: LastCommit;
+}
+
+export const teamAccess = asyncHandler(async (req, res) => {
+  const userId = req.user?.userId;
+  const repo_id = Number(req.params.id);
+
+  if (!req.params.id || !Number.isInteger(repo_id))
+    throw new ApiError(400, "invalid repo id", "please provide a numeric repo id");
+
+  const authors = await Finding.aggregate([
+    {
+      $match: {
+        accountId: new Types.ObjectId(userId),
+        repo_id,
+        git_author: { $nin: [null, ""] },
+      },
+    },
+    { $sort: { git_commit_date: -1 } },          // newest first, so $first = last commit
+    {
+      $group: {
+        _id: "$git_author",                       // email
+        header: { $first: { $substrCP: ["$git_diff", 0, 300] } },
+        lastCommitHash: { $first: "$git_commit_hash" },
+        lastCommitDate: { $first: "$git_commit_date" },
+        lastCommitSummary: { $first: "$git_commit_summary" },
+        findings: { $sum: 1 },
+      },
+    },
+    { $sort: { lastCommitDate: -1 } },            // most recently active author first
+  ]);
+
+  const response: ResponseInterface[] = authors.map((a) => {
+    const m = a.header?.match(/^Author:\s*(.+?)\s*<([^>]+)>/m);
+    return {
+      git_auth: m?.[1] ?? String(a._id).split("@")[0],
+      git_email: m?.[2] ?? a._id,
+      findings: a.findings,
+      last_commit: {
+        hash: a.lastCommitHash ?? null,
+        shortHash: a.lastCommitHash?.slice(0, 7) ?? null,
+        date: a.lastCommitDate ?? null,
+        summary: a.lastCommitSummary ?? null,
+      },
+    };
+  });
+
+  return new ApiResponse(200, "team info is fetched", response).send(res);
+});
 
 

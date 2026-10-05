@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {getDangerZone,getSetting,notificationUpdate,correlationUpdate,danger_zone_update} from "@controllers/setting.controller"
+import {getDangerZone,getSetting,notificationUpdate,correlationUpdate,danger_zone_update, teamAccess} from "@controllers/setting.controller"
 const router=Router()
 
 router.get('/',getSetting)
@@ -12,4 +12,7 @@ router.post('/correlation',correlationUpdate)
 
 // update danger-zone
 router.post('/danger-zone/:repo_id',danger_zone_update)
+
+
+router.get('/team-access/:id',teamAccess)
 export default router;

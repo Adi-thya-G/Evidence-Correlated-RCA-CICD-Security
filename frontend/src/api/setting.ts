@@ -51,3 +51,14 @@ export const danger_zone_update=async(repo_id:number,form:Partial<DangerZone>)=>
       throw error    
   }
 } 
+
+
+export const Team_access=async(repo_id:number|string)=>{
+  try {
+    const {data}=await api.get(`/settings/team-access/${repo_id}`)
+    return data.data
+  } catch (error) {
+    
+    throw error
+  }
+}
