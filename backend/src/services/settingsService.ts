@@ -14,8 +14,9 @@ const clamp = (n: unknown, lo: number, hi: number, d: number) => {
 };
 
 export async function getCorrelationCfg(accountId: string): Promise<CorrelationCfg> {
-  const row= await Setting.findOne({ accountId: new Types.ObjectId(accountId) }).lean();
-
+  console.log(accountId) 
+  const row= await Setting.findOne({ accountId: accountId }).lean();
+  console.log(row)
   // Adapt these two field names to what your settings document actually stores
   // (for example row.topK / row.similarityThreshold, or row.correlation?.topK)
   return {
