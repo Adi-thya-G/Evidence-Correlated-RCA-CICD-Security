@@ -69,27 +69,28 @@ export async function correlateFindings(
     { key: 'accountId', match: { value: accountId } },
     { key: 'repo_id', match: { value: repo_id } },
   ] };
-  const withVec = docs.filter(d => vecs.has(d.vectorId));
-  const results = await qdrant.searchBatch(COLLECTION, {
-    searches: withVec.map(d => ({
-      vector: vecs.get(d.vectorId)!,
-      limit: cfg.topK + 1,                          // +1 because a finding matches itself
-      filter,
-      with_payload: false,
-      score_threshold: cfg.similarityThreshold,     // user's similarity threshold
-    })),
-  });
+const withVec = docs.filter(d => vecs.has(d.vectorId));
+
+const results = await qdrant.queryBatch(COLLECTION, {
+  searches: withVec.map(d => ({
+    query: vecs.get(d.vectorId)!,            // was `vector`
+    limit: cfg.topK + 1,                     // +1 because a finding matches itself
+    filter,
+    with_payload: false,
+    score_threshold: cfg.similarityThreshold,
+  })),
+});;
 
   // 3. candidate pairs: vector neighbours + same-file findings
   const sims = new Map<string, number>();
   const key = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
-  withVec.forEach((d, i) => {
-    for (const hit of results[i]) {
-      const n = byVid.get(String(hit.id));
-      if (!n || String(n._id) === String(d._id)) continue; // skip self / non-open
-      sims.set(key(String(d._id), String(n._id)), hit.score);
-    }
-  });
+ withVec.forEach((d, i) => {
+  for (const hit of results[i]?.points) {     // was results[i]
+    const n = byVid.get(String(hit.id));
+    if (!n || String(n._id) === String(d._id)) continue;
+    sims.set(key(String(d._id), String(n._id)), hit.score);
+  }
+});
   const byFile = new Map<string, any[]>();
   docs.forEach(d => d.file && byFile.set(d.file, [...(byFile.get(d.file) ?? []), d]));
   for (const group of byFile.values())
