@@ -8,6 +8,7 @@ export interface CorrelationCfg {
 
 const DEFAULTS: CorrelationCfg = { topK: 10, similarityThreshold: 0.6 };
 
+// this function take four parameter that one value 
 const clamp = (n: unknown, lo: number, hi: number, d: number) => {
   const v = Number(n);
   return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d;
@@ -15,7 +16,7 @@ const clamp = (n: unknown, lo: number, hi: number, d: number) => {
 
 export async function getCorrelationCfg(accountId: string): Promise<CorrelationCfg> {
   console.log(accountId) 
-  const row= await Setting.findOne({ accountId: new Types.ObjectId(accountId) }).lean();
+  const row= await Setting.findOne({ userId: new Types.ObjectId(accountId) }).lean();
   console.log(row)
   // Adapt these two field names to what your settings document actually stores
   // (for example row.topK / row.similarityThreshold, or row.correlation?.topK)
