@@ -7,7 +7,8 @@ import type { ProducerMessage, NormalizedFinding } from '../types/gitEvidence.ty
 import { notify } from '@utils/notify';
 import { embedPendingFindings } from '@services/embedPending';
 import { markResolved } from '@services/Persistfindings';
-
+import { EMBED_DIM } from '@services/embedder';
+import { initQdrant } from '@services/qdrant';
 const consumer = kafka.consumer({ groupId: 'embedding-workers' });
 
 // Per-message git-evidence concurrency. Kept low deliberately: Kafka already
@@ -17,9 +18,10 @@ const consumer = kafka.consumer({ groupId: 'embedding-workers' });
 const PER_MESSAGE_GIT_CONCURRENCY = 2;
 
 export async function startEmbeddingWorker() {
+  await initQdrant(EMBED_DIM); 
   await consumer.connect();
   await consumer.subscribe({ topic: 'raw-findings', fromBeginning: false });
-
+  
   await consumer.run({
     partitionsConsumedConcurrently: 3,
     eachMessage: async ({ message }) => {
