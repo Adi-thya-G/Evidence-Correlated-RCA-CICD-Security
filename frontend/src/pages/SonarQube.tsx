@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import SonarCard from "@root/components/SonarCard"
 
 import { useRepoStore } from '@/stores/repoStore';
-
+import {Loading} from "@root/components/Loading"
 import {GetSonarQubeReport, GetSonarQubeSummary} from "@/api/sonarQubeApi"
 import SonarQubeGrid  from "@root/components/SonarQubeGrid"
 import SourceCode from "@root/components/SourceCode"
@@ -21,7 +21,7 @@ interface queryProps {
 
 function SonarQube() {
 
-  const [data,setData]=useState<any>();
+  const [data,setData]=useState<any|null>(null);
   const defaultRepo = useRepoStore((s) => s.default)??null
   const [page,setPage]=useState<number>(1);
   const [sourceCode,setSelectedSource]=useState<queryProps|null>(null)
@@ -57,6 +57,13 @@ console.log(issues,sourceCode)
  console.log(data?.issues[0]?.creationDate,data?.totalIssues
 )
   const [param,setParams]=useState("issues");
+
+  if(data==null)
+     return (
+      <div className='"w-full h-full flex items-center justify-center'>
+        <Loading/>
+      </div>
+    )
 
 
   return (
@@ -109,6 +116,7 @@ console.log(issues,sourceCode)
     </div>
 
     {/*this main content */}
+   
     
     <div className='w-full grid grid-cols-[6fr_4fr] gap-6'>
       {/* first card */}

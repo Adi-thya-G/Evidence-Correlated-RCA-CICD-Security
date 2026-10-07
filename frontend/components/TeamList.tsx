@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Team_access } from "@/api/setting";
+import { Loading } from './Loading'
 export interface TeamMember {
   git_auth: string;
   git_email: string;
@@ -31,11 +32,15 @@ export default function TeamList({ repoId }: { repoId: number | string }) {
 
   useEffect(() => {
       // adjust to your route
-      Team_access(repoId).then((res)=>setMembers(res));
+      Team_access(repoId).then((res:TeamMember[])=>setMembers(res));
   }, [repoId]);
 
   if (error) return <p className="text-sm text-red-700">{error}</p>;
-  if (!members) return <p className="text-sm text-neutral-400">Loading team…</p>;
+  if (!members) return (
+  <div className="w-full h-52 flex justify-center items-center">
+    <Loading/>
+
+  </div>);
   if (!members.length)
     return <p className="text-sm text-neutral-400">No contributors yet. They appear after the first scan.</p>;
 

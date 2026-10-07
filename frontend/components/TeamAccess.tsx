@@ -1,6 +1,7 @@
 import React from 'react'
 import TeamList from "./TeamList"
-import { useRepoStore } from '@/stores/repoStore'
+import { useRepoStore } from '../src/stores/repoStore'
+
 function TeamAccess() {
   
   

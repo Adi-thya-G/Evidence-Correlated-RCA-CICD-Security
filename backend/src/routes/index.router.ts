@@ -10,6 +10,7 @@ import gitleakRouter from "@routes/gitleaks.router"
 import eventRouter from "@routes/event.route"
 import settingRouter from "@routes/setting.route"
 import NotificationRouter from "@routes/notification.route"
+import CorrelationRouter from "@routes/correlation.route"
 const router=Router();
 
 router.use('/v1/auth',authLimiter,authRouter)
@@ -21,5 +22,6 @@ router.use('/v1/settings',verifyToken,settingRouter)
 router.use('/v1/findings', verifyToken, findingsRouter)
 router.use('/v1/event', verifyToken, eventRouter)
 router.use('/v1/notifications',verifyToken,NotificationRouter)
+router.use('/v1/correlation',verifyToken,CorrelationRouter)
 
 export default router
