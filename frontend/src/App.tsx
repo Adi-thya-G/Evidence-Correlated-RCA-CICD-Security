@@ -65,7 +65,7 @@ function App() {
   }, [location]);
 
   return (
-    <div className="w-full h-screen flex flex-row overflow-y-hidden">
+    <div className="w-full h-screen flex flex-row overflow-y-hidden z-0">
       <Toaster position="top-right"/>
       <SideNav />
 
@@ -106,7 +106,7 @@ function App() {
          
         </header>
          
-        <div className="overflow-y-auto relative">
+        <div className="overflow-y-auto relative z-10">
           {
             notification && <PopNotification/>
           }
