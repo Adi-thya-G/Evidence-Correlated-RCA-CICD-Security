@@ -53,9 +53,7 @@ ${findings}
 CANDIDATE COMMITS (ranked):
 ${commits}
 
-CODE WINDOW:
-${ctx.codeWindow.slice(0, 2500)}
-
+${ctx.codeWindow ? `CODE WINDOW:\n${ctx.codeWindow.slice(0, 2500)}\n` : ''}
 Respond with JSON only, no markdown, with keys:
 root_cause (string), culprit_commit (full sha copied from the candidate list),
 confidence (number 0-1), fix_suggestion (string), evidence_used (array of strings).`;

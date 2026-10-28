@@ -124,7 +124,7 @@ export async function startEmbeddingWorker() {
         console.log(`[key=${key}] Saved findings: ${result.upserted} new, ${result.modified} updated`);
 
         // 5. Embed only new/changed findings into Qdrant
-        await embedPendingFindings(accountId, repo_id);
+        await embedPendingFindings(accountId, repo_id );
 
         // 6. Resolve findings that vanished (Sonar scan is complete per commit)
         const resolved = await markResolved(accountId, repo_id, 'sonarqube', commitSha);

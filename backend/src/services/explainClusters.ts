@@ -12,15 +12,16 @@ const DELAY_BETWEEN_CALLS_MS = Number(process.env.LLM_DELAY_MS ?? 2000);
  * NOTE: `commitSha` on a finding is probably the SCANNED commit, not the
  * commit that introduced the line, so it is deliberately not used here.
  * ------------------------------------------------------------------ */
-const blameSha = (f: any): string | undefined =>
-  f.blame?.commit ?? f.blame_commit ?? f.git_blame?.commit ?? f.introducedBy?.sha;
-const blameAuthor = (f: any): string => f.blame?.author ?? f.blame_author ?? f.git_blame?.author ?? 'unknown';
+const blameSha = (f: any): string | undefined => f.git_commit_hash || undefined;
+const blameAuthor = (f: any): string => f.git_author ?? 'unknown';
 const diffOf = (f: any): string => f.git_diff ?? '';
-const windowOf = (f: any): string => f.code_window ?? f.codeWindow ?? f.evidence?.codeWindow ?? '';
-const ruleOf = (f: any): string => f.ruleId ?? f.rule ?? f.rule_id ?? 'unknown-rule';
-const cweOf = (f: any): string | undefined => f.cwe ?? f.cweId;
-const lineOf = (f: any): number => f.line ?? f.startLine ?? 0;
-const msgOf = (f: any): string => f.message ?? f.title ?? '';
+// No code-window or CWE field exists on your findings yet, so these return empty/undefined.
+// Add them to the evidence collector later and point these adapters at the new fields.
+const windowOf = (f: any): string => f.code_window ?? '';
+const ruleOf = (f: any): string => f.ruleId ?? 'unknown-rule';
+const cweOf = (f: any): string | undefined => f.cwe ?? undefined;
+const lineOf = (f: any): number => f.startLine ?? 0;
+const msgOf = (f: any): string => f.message ?? '';
 
 /* ---------------- stored result ---------------- */
 const RootCauseResultSchema = new Schema(
