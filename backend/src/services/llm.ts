@@ -10,7 +10,7 @@ export const RootCauseSchema = z.object({
 });
 export type RootCause = z.infer<typeof RootCauseSchema>;
 
-//
+// version 1.1
 export interface ClusterContext {
   clusterId: string;
   findings: {
