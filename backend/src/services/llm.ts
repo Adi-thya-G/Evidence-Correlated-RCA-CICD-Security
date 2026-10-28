@@ -1,5 +1,6 @@
 // services/llm.ts
 import { z } from 'zod';
+import { env } from '@config/env';
 
 export const RootCauseSchema = z.object({
   root_cause: z.string().min(1),
@@ -30,8 +31,29 @@ export interface ClusterContext {
 //                LLM_MODEL=meta-llama/llama-3.3-70b-instruct:free  (check openrouter.ai/models for current free models)
 //  - Ollama:     LLM_API_URL=http://localhost:11434/v1/chat/completions
 //                LLM_MODEL=qwen2.5-coder:7b   (no API key needed)
-const API_URL = process.env.LLM_API_URL ?? 'https://openrouter.ai/api/v1/chat/completions';
-export const LLM_MODEL = process.env.LLM_MODEL ?? 'meta-llama/llama-3.3-70b-instruct:free';
+const DEFAULT_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const DEFAULT_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
+
+// Use || (not ??) so blank values like `LLM_API_URL=` fall back to the default.
+function resolveApiUrl(): string {
+  const url = env.LLM_API_URL?.trim().replace(/^["']|["']$/g, '') || DEFAULT_API_URL;
+  try {
+    new URL(url);
+  } catch {
+    throw new Error(
+      `Invalid LLM_API_URL: ${JSON.stringify(url)} (must be a full URL including http:// or https://)`
+    );
+  }
+  return url;
+}
+
+const API_URL = resolveApiUrl();
+export const LLM_MODEL = env.LLM_MODEL?.trim() || DEFAULT_MODEL;
+
+console.log(
+  '[llm] config',
+  JSON.stringify({ API_URL, LLM_MODEL, hasKey: !!env.OPENROUTER_API_KEY })
+);
 
 export function buildPrompt(ctx: ClusterContext): string {
   const findings = ctx.findings
@@ -62,10 +84,10 @@ confidence (number 0-1), fix_suggestion (string), evidence_used (array of string
 
 export async function explainRootCause(ctx: ClusterContext, retries = 2): Promise<RootCause> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (process.env.OPENROUTER_API_KEY) {
-    headers.Authorization = `Bearer ${process.env.OPENROUTER_API_KEY}`;
+  if (env.OPENROUTER_API_KEY) {
+    headers.Authorization = `Bearer ${env.OPENROUTER_API_KEY}`;
   }
-  if (process.env.APP_URL) headers['HTTP-Referer'] = process.env.APP_URL;
+  if (env.APP_URL) headers['HTTP-Referer'] = env.APP_URL;
   if (process.env.APP_NAME) headers['X-Title'] = process.env.APP_NAME;
 
   let lastError: unknown;
@@ -75,6 +97,7 @@ export async function explainRootCause(ctx: ClusterContext, retries = 2): Promis
       const res = await fetch(API_URL, {
         method: 'POST',
         headers,
+        signal: AbortSignal.timeout(60_000), // don't hang the Kafka consumer
         body: JSON.stringify({
           model: LLM_MODEL,
           temperature: 0,
@@ -99,7 +122,19 @@ export async function explainRootCause(ctx: ClusterContext, retries = 2): Promis
       return RootCauseSchema.parse(JSON.parse(cleaned.slice(start, end + 1)));
     } catch (err) {
       lastError = err;
+      console.error(
+        `[llm] attempt ${attempt + 1}/${retries + 1} failed for cluster ${ctx.clusterId}:`,
+        err,
+        'URL:',
+        JSON.stringify(API_URL)
+      );
+
+      // A bad URL will never succeed on retry, so fail fast.
+      if (err instanceof TypeError && String(err).includes('Failed to parse URL')) {
+        throw err;
+      }
     }
   }
+
   throw new Error(`LLM failed after ${retries + 1} attempts: ${String(lastError)}`);
 }

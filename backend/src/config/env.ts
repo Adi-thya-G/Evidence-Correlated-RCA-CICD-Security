@@ -9,6 +9,9 @@ dotevn.config({path:".env.local"})
 const envSchema = z.object({
   NODE_ENV:z.enum(['development','staging','production','test']).default('development'),
   PORT:z.coerce.number().default(3000),
+  // app config
+  APP_URL:z.string(),
+APP_NAME:z.string(),
   //database set up
   MONGODB_URI:z.string().min(1,'MONGODB URL REQUIRED'),
   DATABASE_NAME:z.string().min(1,'DATABASE NAME REQUIRED'),
@@ -24,8 +27,6 @@ const envSchema = z.object({
   PINECONE_API_KEY:z.string().optional(),
   PINECONE_INDEX:z.string().optional(),
 
-  LLM_API_KEY:z.string().optional(),
-  LLM_API_URL:z.string().optional(),
 
   // slack
   SLACK_BOT_TOKEN:z.string().optional(),
@@ -45,7 +46,13 @@ const envSchema = z.object({
   SONARQUBE_HOST:z.string(),
   SONARQUBE_TOKEN:z.string(),
   SONARQUBE_PATH:z.string(),
-  SONARQUBE_SECRET_WEBHOOK:z.string()
+  SONARQUBE_SECRET_WEBHOOK:z.string(),
+
+  // llm
+LLM_API_URL:z.string(),
+LLM_MODEL:z.string(),
+OPENROUTER_API_KEY:z.string(),
+LLM_DELAY_MS:z.coerce.number()
 
 }).readonly()
 
@@ -53,6 +60,7 @@ const parsedData=envSchema.safeParse(process.env)
 // parseData check value exist in env.local file
 if(!parsedData.success){
   console.log("env configuration failed")
+  console.log(parsedData.error.flatten())
   process.exit(1)
 }
 
