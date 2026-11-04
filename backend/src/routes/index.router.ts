@@ -11,6 +11,7 @@ import eventRouter from "@routes/event.route"
 import settingRouter from "@routes/setting.route"
 import NotificationRouter from "@routes/notification.route"
 import CorrelationRouter from "@routes/correlation.route"
+import RootRouter from "@routes/Rootcause.routes"
 const router=Router();
 
 router.use('/v1/auth',authLimiter,authRouter)
@@ -23,5 +24,6 @@ router.use('/v1/findings', verifyToken, findingsRouter)
 router.use('/v1/event', verifyToken, eventRouter)
 router.use('/v1/notifications',verifyToken,NotificationRouter)
 router.use('/v1/correlation',verifyToken,CorrelationRouter)
+router.use('/v1/dashboard',verifyToken,RootRouter)
 
 export default router

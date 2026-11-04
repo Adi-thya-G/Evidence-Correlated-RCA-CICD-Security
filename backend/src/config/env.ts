@@ -49,10 +49,10 @@ APP_NAME:z.string(),
   SONARQUBE_SECRET_WEBHOOK:z.string(),
 
   // llm
-LLM_API_URL:z.string(),
-LLM_MODEL:z.string(),
-OPENROUTER_API_KEY:z.string(),
-LLM_DELAY_MS:z.coerce.number()
+LLM_API_URL: z.string().min(1, 'LLM_API_URL required'),
+LLM_MODEL: z.string().min(1, 'LLM_MODEL required'),
+OPENROUTER_API_KEY: z.string().min(1, 'OPENROUTER_API_KEY required'),
+LLM_DELAY_MS: z.coerce.number().default(2000),
 
 }).readonly()
 

@@ -26,17 +26,20 @@ export interface ClusterContext {
   codeWindow: string;
 }
 
-// Free options:
-//  - OpenRouter: LLM_API_URL=https://openrouter.ai/api/v1/chat/completions
-//                LLM_MODEL=meta-llama/llama-3.3-70b-instruct:free  (check openrouter.ai/models for current free models)
-//  - Ollama:     LLM_API_URL=http://localhost:11434/v1/chat/completions
-//                LLM_MODEL=qwen2.5-coder:7b   (no API key needed)
+// Provider examples (set in .env; URL, model and key must belong to the same provider):
+//  - OpenRouter: https://openrouter.ai/api/v1/chat/completions
+//  - Gemini:     https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+//  - DeepSeek:   https://api.deepseek.com/chat/completions
+//  - Ollama:     http://localhost:11434/v1/chat/completions  (no key needed)
 const DEFAULT_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const DEFAULT_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
+const DEFAULT_MODEL = 'meta-llama/llama-3.3-70b-instruct';
 
-// Use || (not ??) so blank values like `LLM_API_URL=` fall back to the default.
+// Trim whitespace and stray quotes; an empty result means "not set".
+const clean = (v?: string) =>
+  (v ?? '').trim().replace(/^["']+|["']+$/g, '').trim();
+
 function resolveApiUrl(): string {
-  const url = env.LLM_API_URL?.trim().replace(/^["']|["']$/g, '') || DEFAULT_API_URL;
+  const url = clean(env.LLM_API_URL) || clean(env.LLM_API_URL) || DEFAULT_API_URL;
   try {
     new URL(url);
   } catch {
@@ -48,11 +51,15 @@ function resolveApiUrl(): string {
 }
 
 const API_URL = resolveApiUrl();
-export const LLM_MODEL = env.LLM_MODEL?.trim() || DEFAULT_MODEL;
+export const LLM_MODEL =
+  clean(env.LLM_MODEL) || clean(env.LLM_MODEL) || DEFAULT_MODEL;
+const API_KEY =
+  clean(env.OPENROUTER_API_KEY) ||
+  clean(env.OPENROUTER_API_KEY);
 
 console.log(
   '[llm] config',
-  JSON.stringify({ API_URL, LLM_MODEL, hasKey: !!env.OPENROUTER_API_KEY })
+  JSON.stringify({ API_URL, LLM_MODEL, hasKey: !!API_KEY, cwd: process.cwd() })
 );
 
 export function buildPrompt(ctx: ClusterContext): string {
@@ -84,55 +91,79 @@ confidence (number 0-1), fix_suggestion (string), evidence_used (array of string
 
 export async function explainRootCause(ctx: ClusterContext, retries = 2): Promise<RootCause> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (env.OPENROUTER_API_KEY) {
-    headers.Authorization = `Bearer ${env.OPENROUTER_API_KEY}`;
-  }
+  if (API_KEY) headers.Authorization = `Bearer ${API_KEY}`;
   if (env.APP_URL) headers['HTTP-Referer'] = env.APP_URL;
   if (process.env.APP_NAME) headers['X-Title'] = process.env.APP_NAME;
 
+  const prompt = buildPrompt(ctx);
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
+    const t0 = Date.now();
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
         headers,
-        signal: AbortSignal.timeout(60_000), // don't hang the Kafka consumer
+        signal: AbortSignal.timeout(120_000),
         body: JSON.stringify({
           model: LLM_MODEL,
           temperature: 0,
-          messages: [{ role: 'user', content: buildPrompt(ctx) }],
+          max_tokens: 2000,
+          messages: [{ role: 'user', content: prompt }],
         }),
       });
 
       if (res.status === 429) {
-        // rate limited: back off and retry
         await new Promise((r) => setTimeout(r, 5000 * (attempt + 1)));
-        throw new Error('rate limited (429)');
+        throw Object.assign(new Error('rate limited (429)'), { retryable: true });
       }
-      if (!res.ok) throw new Error(`LLM HTTP ${res.status}: ${await res.text()}`);
+      if (!res.ok) {
+        const body = await res.text();
+        // 4xx (bad key, bad model, bad request) will not fix itself; only 5xx retries
+        throw Object.assign(new Error(`LLM HTTP ${res.status}: ${body}`), {
+          retryable: res.status >= 500,
+        });
+      }
 
       const data = (await res.json()) as any;
       const raw: string = data?.choices?.[0]?.message?.content ?? '';
-      const cleaned = raw.replace(/```json|```/g, '').trim();
+      console.log(`[llm] cluster ${ctx.clusterId} ok in ${Date.now() - t0}ms`);
+
+      const cleaned = raw
+        .replace(/<think>[\s\S]*?<\/think>/g, '')
+        .replace(/```json|```/g, '')
+        .trim();
       const start = cleaned.indexOf('{');
       const end = cleaned.lastIndexOf('}');
-      if (start === -1 || end === -1) throw new Error('no JSON object in LLM output');
+      if (start === -1 || end === -1) {
+        console.error('[llm] raw output was:', raw.slice(0, 500));
+        throw Object.assign(new Error('no JSON object in LLM output'), { retryable: true });
+      }
 
-      return RootCauseSchema.parse(JSON.parse(cleaned.slice(start, end + 1)));
+      const parsed = RootCauseSchema.parse(JSON.parse(cleaned.slice(start, end + 1)));
+
+      // make sure the model returned a real candidate sha, normalize to the full sha
+      const match = ctx.candidateCommits.find(
+        (c) => c.sha === parsed.culprit_commit || c.sha.startsWith(parsed.culprit_commit)
+      );
+      if (!match) {
+        throw Object.assign(new Error('culprit_commit not in candidate list'), {
+          retryable: true,
+        });
+      }
+      parsed.culprit_commit = match.sha;
+      return parsed;
     } catch (err) {
       lastError = err;
+      const isTimeout = err instanceof DOMException && err.name === 'TimeoutError';
       console.error(
-        `[llm] attempt ${attempt + 1}/${retries + 1} failed for cluster ${ctx.clusterId}:`,
-        err,
-        'URL:',
-        JSON.stringify(API_URL)
+        `[llm] attempt ${attempt + 1}/${retries + 1} failed after ${Date.now() - t0}ms for cluster ${ctx.clusterId}:`,
+        isTimeout ? 'TIMEOUT' : err
       );
 
-      // A bad URL will never succeed on retry, so fail fast.
-      if (err instanceof TypeError && String(err).includes('Failed to parse URL')) {
-        throw err;
-      }
+      if (err instanceof TypeError && String(err).includes('Failed to parse URL')) throw err;
+      if ((err as any)?.retryable === false) throw err; // fail fast on 4xx
+      if (isTimeout && attempt >= 1) throw err; // retry timeouts only once
     }
   }
 

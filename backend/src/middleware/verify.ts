@@ -2,12 +2,14 @@ import { env } from "@config/env";
 import { User } from "@modules/User";
 import ApiError from "@utils/ApiError";
 import { asyncHandler } from "@utils/asyncHandler";
-import JWT from "jsonwebtoken";
+import JWT ,{ TokenExpiredError}from "jsonwebtoken";
 import { Types } from "mongoose";
 
 
 export const verifyToken = asyncHandler(async (req, res, next) => {
-  const { session_token } = req.cookies;
+  try{
+    const { session_token } = req.cookies;
+  console.log(session_token,req.cookies)
   if (!session_token)
     next(new ApiError(404, "token error", "session token not found"));
   const decode = JWT.verify(session_token, env.JWT_SECRET) as {
@@ -25,4 +27,14 @@ export const verifyToken = asyncHandler(async (req, res, next) => {
      throw new ApiError(404,"user not found error","user not found error")
   req.user = { userId, githubId };
   next();
+  }
+  catch (err) {
+    const expired = err instanceof TokenExpiredError;
+    return res.status(401).json({
+      success: false,
+      error: expired ? "token_expired" : "invalid_token",
+      message: expired ? "Token expired" : "Invalid token",
+    });
+  }
+
 });

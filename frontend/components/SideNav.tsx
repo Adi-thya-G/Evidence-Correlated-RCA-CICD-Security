@@ -6,9 +6,6 @@ import { useRepoStore } from "../src/stores/repoStore";
 const menuItems = [
   { name: "Overview", icon: "solar:home-2-outline" },
   { name: "Findings", icon: "solar:danger-triangle-outline" },
-  { name: "Correlations", icon: "solar:link-round-outline" },
-  { name: "Root causes", icon: "solar:bug-outline" },
-  { name: "Deployment gate", icon: "solar:shield-check-outline" },
   { name: "SonarQube", icon: "solar:radar-2-outline" },
   { name: "Semgrep", icon: "solar:code-square-outline" },
   { name: "Trivy", icon: "solar:shield-warning-outline" },

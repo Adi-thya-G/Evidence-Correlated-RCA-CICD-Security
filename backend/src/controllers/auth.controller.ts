@@ -176,7 +176,7 @@ export const logout=asyncHandler(async(req,res,next)=>{
   user.loginCount-=1;
   await user.save({validateBeforeSave:true})
   res.cookie("session_token","");
-  res.send();
+  return new ApiResponse(200,"sucessfully logout",[]).send(res);
 })
 
 export const authMe=asyncHandler(async(req,res,next)=>{
