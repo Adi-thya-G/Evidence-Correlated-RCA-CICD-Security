@@ -30,9 +30,9 @@ export async function getLatestTrivyFindings(
 ) {
   const safePage = Math.max(1, page);
   const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
-
+   console.log(repo_id,"inside")
   const report = await SecurityScanReport.findOne({ repo_id }).lean();
-
+  console.log(report,"report")
 
   if (!report) {
     return {

@@ -149,7 +149,7 @@ function PopNotification() {
   };
 
   return (
-    <div className="absolute right-4 top-4 z-50 w-105 max-md:w-[calc(100vw-2rem)] h-120 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden flex flex-col">
+    <div className=" right-12 top-10 z-30 w-105 max-md:w-[calc(100vw-2rem)] h-120 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden flex flex-col fixed">
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200">
         <div className="flex items-center justify-between">

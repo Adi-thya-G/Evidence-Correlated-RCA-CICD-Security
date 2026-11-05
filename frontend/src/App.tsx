@@ -65,7 +65,7 @@ function App() {
   }, [location]);
 
   return (
-    <div className="w-full h-screen flex flex-row overflow-y-hidden z-0">
+    <div className="w-full h-screen flex flex-row overflow-y-hidden -z-20">
       <Toaster position="top-right"/>
       <SideNav />
 

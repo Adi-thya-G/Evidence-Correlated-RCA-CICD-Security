@@ -46,7 +46,7 @@ function Dashboard() {
   };
 
   return (
-    <div className="p-5 flex flex-col gap-4 py-6">
+    <div className="p-5 flex flex-col gap-4 py-6 " >
       {error && (
         <p className="text-sm text-red-700 font-mono border border-red-200 bg-red-50 rounded-xl p-3">
           {error}
