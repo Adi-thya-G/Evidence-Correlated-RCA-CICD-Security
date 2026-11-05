@@ -5,6 +5,7 @@ import { SummaryCards } from "@root/components/SummaryCards";
 import { ClusterList } from "@root/components/ClusterList";
 import { RootCauseDetail } from "@root/components/RootCauseDetail";
 
+// This page is the main dashboard for the root cause analysis feature. It displays a summary of the analysis, a list of clusters, and details for the selected cluster. It uses Zustand for state management and fetches data from the backend as needed.
 function Dashboard() {
   const repoId = useRepoStore((s) => s.default?.repo_id);
 
