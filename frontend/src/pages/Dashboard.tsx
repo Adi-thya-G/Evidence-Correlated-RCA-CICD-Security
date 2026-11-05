@@ -5,7 +5,6 @@ import { SummaryCards } from "@root/components/SummaryCards";
 import { ClusterList } from "@root/components/ClusterList";
 import { RootCauseDetail } from "@root/components/RootCauseDetail";
 
-// this dashboard
 function Dashboard() {
   const repoId = useRepoStore((s) => s.default?.repo_id);
 
