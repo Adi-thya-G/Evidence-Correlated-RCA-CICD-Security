@@ -288,6 +288,8 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
         repo_id: report.repo_id,
       });
 
+      console.log(`[sonarqube-webhook] Sending raw-findings message for accountId=${accountId} repo_id=${report.repo_id} commitSha=${commitSha} cloneUrl=${security?.repoPath} installationId=${security?.repoPath?.split("\\")[4]}`)
+
       producer.send({
         topic: "raw-findings",
         messages: [
