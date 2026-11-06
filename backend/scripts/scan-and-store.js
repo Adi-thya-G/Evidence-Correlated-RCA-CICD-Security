@@ -9,7 +9,8 @@
  *   - manualStatus          : YOUR field (false_positive, accepted_risk...) - never touched by this script
  *
  * Collections:
- *   findings               one doc per finding for its whole life (never deleted)
+ *   semgrepfindings / gitleaksfindings / trivyfindings
+ *                          one doc per finding for its whole life (never deleted)
  *   scanruns               one doc per run (history)
  *   securityscanreports    one summary doc per project (dashboard)
  *
@@ -282,115 +283,131 @@ function explainResolved(old) {
 }
 
 // ---------------------------------------------------------------------
-// 6. Sync with MongoDB
+// 6. Sync with MongoDB - one collection PER TOOL
 // ---------------------------------------------------------------------
-async function main() {
-  const client = new MongoClient(MONGO_URI);
-  try {
-    await client.connect();
-    const db = client.db(DB_NAME);
-    const col = db.collection(FINDINGS);
+const COLLECTIONS = {
+  semgrep: process.env.MONGO_SEMGREP_COLLECTION || "semgrepfindings",
+  gitleaks: process.env.MONGO_GITLEAKS_COLLECTION || "gitleaksfindings",
+  trivy: process.env.MONGO_TRIVY_COLLECTION || "trivyfindings",
+};
+// SonarQube is NOT scanned by this script. Its results stay in your existing
+// SonarQubeReport collection; link them to these rows via projectKey / repo_id.
 
-    await col.createIndex({ projectKey: 1, branch: 1, fingerprint: 1 }, { unique: true });
-    await col.createIndex({ projectKey: 1, status: 1 });
-    await col.createIndex({ introducingCommitSha: 1 });
-    await db.collection(RUNS).createIndex({ projectKey: 1, scannedAt: -1 });
-    await db.collection(SUMMARY).createIndex({ projectKey: 1 }, { unique: true });
+async function syncTool(db, tool) {
+  const col = db.collection(COLLECTIONS[tool]);
+  await col.createIndex({ projectKey: 1, branch: 1, fingerprint: 1 }, { unique: true });
+  await col.createIndex({ projectKey: 1, status: 1 });
+  await col.createIndex({ introducingCommitSha: 1 });
 
-    const existing = await col.find({ projectKey, branch }).toArray();
-    const byFp = new Map(existing.map((d) => [d.fingerprint, d]));
-    const currentFps = new Set(allFindings.map((f) => f.fingerprint));
-    const counts = { new: 0, reopened: 0, resolved: 0, unchanged: 0 };
-    const ops = [];
+  const counts = { new: 0, reopened: 0, resolved: 0, unchanged: 0 };
+  const openFilter = { projectKey, branch, status: { $in: ["open", "reopened"] } };
 
-    for (const f of allFindings) {
-      const old = byFp.get(f.fingerprint);
-      const common = {
-        ...f,
-        accountId, repo_id, repo: repoName, projectKey, branch,
-        lastSeenScanId: scanId, lastSeenCommitSha: commitSha, lastSeenAt: scannedAt, updatedAt: new Date(),
-      };
+  // Tool failed -> touch nothing (never resolve findings on a failed scan).
+  if (!toolOk[tool]) return { counts, open: await col.countDocuments(openFilter) };
 
-      if (!old) {
-        counts.new++;
-        ops.push({
-          insertOne: {
-            document: {
-              ...common, ...introducing(f),
-              status: "open", reopenCount: 0,
-              firstSeenScanId: scanId, firstSeenCommitSha: commitSha, firstSeenAt: scannedAt,
-              createdAt: new Date(),
-            },
+  const findings = allFindings.filter((f) => f.tool === tool);
+  const existing = await col.find({ projectKey, branch }).toArray();
+  const byFp = new Map(existing.map((d) => [d.fingerprint, d]));
+  const currentFps = new Set(findings.map((f) => f.fingerprint));
+  const ops = [];
+
+  for (const f of findings) {
+    const old = byFp.get(f.fingerprint);
+    const common = {
+      ...f,
+      accountId, repo_id, repo: repoName, projectKey, branch,
+      lastSeenScanId: scanId, lastSeenCommitSha: commitSha, lastSeenAt: scannedAt, updatedAt: new Date(),
+    };
+
+    if (!old) {
+      counts.new++;
+      ops.push({
+        insertOne: {
+          document: {
+            ...common, ...introducing(f),
+            status: "open", reopenCount: 0,
+            firstSeenScanId: scanId, firstSeenCommitSha: commitSha, firstSeenAt: scannedAt,
+            createdAt: new Date(),
           },
-        });
-      } else if (old.status === "resolved") {
-        counts.reopened++;
-        ops.push({
-          updateOne: {
-            filter: { _id: old._id },
-            update: {
-              $set: {
-                ...common, status: "reopened",
-                resolvedScanId: null, resolvedAt: null, resolvedAtCommitSha: null,
-                fixingCommitSha: null, resolvedReason: null,
-              },
-              $inc: { reopenCount: 1 },
-            },
-          },
-        });
-      } else {
-        counts.unchanged++;
-        ops.push({ updateOne: { filter: { _id: old._id }, update: { $set: common } } });
-      }
-    }
-
-    // Anything open before, missing now, and whose tool actually succeeded -> resolved.
-    for (const old of existing) {
-      if (old.status === "resolved" || currentFps.has(old.fingerprint) || !okTools.has(old.tool)) continue;
-      const { reason, fixingSha } = explainResolved(old);
-      counts.resolved++;
+        },
+      });
+    } else if (old.status === "resolved") {
+      counts.reopened++;
       ops.push({
         updateOne: {
           filter: { _id: old._id },
           update: {
             $set: {
-              status: "resolved", resolvedScanId: scanId, resolvedAt: scannedAt,
-              resolvedAtCommitSha: commitSha, fixingCommitSha: fixingSha, resolvedReason: reason,
-              updatedAt: new Date(),
+              ...common, status: "reopened",
+              resolvedScanId: null, resolvedAt: null, resolvedAtCommitSha: null,
+              fixingCommitSha: null, resolvedReason: null,
             },
+            $inc: { reopenCount: 1 },
           },
         },
       });
+    } else {
+      counts.unchanged++;
+      ops.push({ updateOne: { filter: { _id: old._id }, update: { $set: common } } });
     }
+  }
 
-    if (ops.length) await col.bulkWrite(ops, { ordered: false });
+  for (const old of existing) {
+    if (old.status === "resolved" || currentFps.has(old.fingerprint)) continue;
+    const { reason, fixingSha } = explainResolved(old);
+    counts.resolved++;
+    ops.push({
+      updateOne: {
+        filter: { _id: old._id },
+        update: {
+          $set: {
+            status: "resolved", resolvedScanId: scanId, resolvedAt: scannedAt,
+            resolvedAtCommitSha: commitSha, fixingCommitSha: fixingSha, resolvedReason: reason,
+            updatedAt: new Date(),
+          },
+        },
+      },
+    });
+  }
 
-    const open = await col
-      .aggregate([
-        { $match: { projectKey, branch, status: { $in: ["open", "reopened"] } } },
-        { $group: { _id: "$tool", n: { $sum: 1 } } },
-      ])
-      .toArray();
-    const openByTool = Object.fromEntries(open.map((o) => [o._id, o.n]));
-    const openTotal = open.reduce((s, o) => s + o.n, 0);
+  if (ops.length) await col.bulkWrite(ops, { ordered: false });
+  return { counts, open: await col.countDocuments(openFilter) };
+}
 
-    // Run history
+async function main() {
+  const client = new MongoClient(MONGO_URI);
+  try {
+    await client.connect();
+    const db = client.db(DB_NAME);
+    await db.collection(RUNS).createIndex({ projectKey: 1, scannedAt: -1 });
+    await db.collection(SUMMARY).createIndex({ projectKey: 1 }, { unique: true });
+
+    const byTool = {};
+    const openByTool = {};
+    const total = { new: 0, reopened: 0, resolved: 0, unchanged: 0 };
+    for (const tool of Object.keys(COLLECTIONS)) {
+      const r = await syncTool(db, tool);
+      byTool[tool] = r.counts;
+      openByTool[tool] = r.open;
+      for (const k of Object.keys(total)) total[k] += r.counts[k];
+    }
+    const openTotal = Object.values(openByTool).reduce((a, b) => a + b, 0);
+
     await db.collection(RUNS).insertOne({
       scanId, projectKey, branch, accountId, repo_id,
       commitSha, dirty, scannedAt,
       toolStatus: toolOk,
       toolVersions: { semgrep: version("semgrep --version"), gitleaks: version("gitleaks version"), trivy: version("trivy --version") },
-      counts, openTotal, openByTool,
+      counts: total, countsByTool: byTool, openTotal, openByTool,
     });
 
-    // Dashboard summary (latest run)
     await db.collection(SUMMARY).updateOne(
       { projectKey },
       {
         $set: {
           projectKey, accountId, repo_id, branch, repo: repoName, repoPath: path.resolve(repoPath),
           scanId, scannedCommitSha: commitSha, dirty,
-          openTotal, openByTool, lastRunCounts: counts, toolStatus: toolOk,
+          openTotal, openByTool, lastRunCounts: total, lastRunCountsByTool: byTool, toolStatus: toolOk,
           status: okTools.size === 3 ? "SUCCESS" : "PARTIAL",
           scannedAt, updatedAt: new Date(),
         },
@@ -400,8 +417,10 @@ async function main() {
     );
 
     console.log("\n--- Result ---");
-    console.log(`new: ${counts.new}, reopened: ${counts.reopened}, resolved: ${counts.resolved}, unchanged: ${counts.unchanged}`);
-    console.log(`open now: ${openTotal}`, openByTool);
+    for (const t of Object.keys(byTool)) {
+      const c = byTool[t];
+      console.log(`${t}: new ${c.new}, reopened ${c.reopened}, resolved ${c.resolved}, unchanged ${c.unchanged}, open now ${openByTool[t]}`);
+    }
   } finally {
     await client.close();
   }

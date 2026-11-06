@@ -84,29 +84,29 @@ export const webHookHandler = asyncHandler(async (req, res) => {
     const response = await handlePushEvent(payload);
     const key = await projectKey(installationId, payload.repository.id);
 
-    await notify(installationId, {
-      type: "sonarqube",
-      title: "SonarQube Analysis Started",
-      message: "SonarQube is analyzing your latest commit.",
-    });
+    // await notify(installationId, {
+    //   type: "sonarqube",
+    //   title: "SonarQube Analysis Started",
+    //   message: "SonarQube is analyzing your latest commit.",
+    // });
 
-    await runSonarQubeScanner(response, key);
+    // await runSonarQubeScanner(response, key);
 
     const ownerId = payload.organization?.id ?? payload.repository.owner.id;
     const user = await User.findOne({ githubId: ownerId }, { _id: 1 });
 
-    await SonarQubeReport.findOneAndUpdate(
-      { projectKey: key },
-      {
-        accountId: user?._id as mongoose.Types.ObjectId,
-        repo_id: payload?.repository?.id,
-        installationId, // needed so the SonarQube webhook can notify the right user
-      },
-      {
-        upsert: true,
-        new: true,
-      },
-    );
+    // await SonarQubeReport.findOneAndUpdate(
+    //   { projectKey: key },
+    //   {
+    //     accountId: user?._id as mongoose.Types.ObjectId,
+    //     repo_id: payload?.repository?.id,
+    //     installationId, // needed so the SonarQube webhook can notify the right user
+    //   },
+    //   {
+    //     upsert: true,
+    //     new: true,
+    //   },
+    // );
 
     const userId = user?._id;
     const repoId = payload.repository.id;
@@ -124,6 +124,7 @@ export const webHookHandler = asyncHandler(async (req, res) => {
       branch: payload.repository.branch ?? branch,
       scriptPath:"D:/Evidence-Correlated-RCA-CICD-Security/backend/scripts/scan-and-store.js",
     });
+
   } else if (event === "installation_repositories") {
     const githubId = payload.installation.account.id;
 
