@@ -3,13 +3,15 @@
  *
  * Runs Semgrep, Gitleaks, Trivy on a repo and tracks every finding over time:
  *   - scannedCommitSha      : commit the scan ran against (HEAD)
- *   - introducingCommitSha  : commit that most likely introduced the finding
+ *   - git_commit_hash  : commit that most likely introduced the finding
  *   - status                : open | resolved | reopened  (set automatically)
  *   - fixingCommitSha       : commit that most likely fixed it
  *   - manualStatus          : YOUR field (false_positive, accepted_risk...) - never touched by this script
  *
  * Collections:
- *   semgrepfindings / gitleaksfindings / trivyfindings
+ *   findings                 ALL tools together (normalized, no raw) - input for correlation
+ *   semgrepfindings / gitleaksfindings / trivyfindings / sonarqubefindings
+ *                            per-tool copy with raw scanner output
  *                          one doc per finding for its whole life (never deleted)
  *   scanruns               one doc per run (history)
  *   securityscanreports    one summary doc per project (dashboard)
@@ -17,7 +19,9 @@
  * Usage:
  *   node scan-and-store.js <repoPath> <accountId> <repo_id> <projectKey> [branch]
  *
- * Requirements: npm install mongodb ; semgrep, gitleaks, trivy, git on PATH
+ * Requirements: Node 18+, npm install mongodb ; semgrep, gitleaks, trivy, git on PATH
+ * SonarQube (optional): set SONAR_URL and SONAR_TOKEN. Optional: SONAR_PROJECT_KEY (defaults to
+ *   projectKey), SONAR_TYPES, SONAR_BRANCH.
  */
 
 const { execSync, execFileSync } = require("child_process");
@@ -28,7 +32,11 @@ const { MongoClient, ObjectId } = require("mongodb");
 
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017";
 const DB_NAME = process.env.MONGO_DB_NAME || "evidence-rca";
-const FINDINGS = "findings";
+// SonarQube is read through its web API (optional - enabled when both are set).
+const SONAR_URL = (process.env.SONAR_URL || "").replace(/\/$/, "");
+const SONAR_TOKEN = process.env.SONAR_TOKEN || "";
+const SONAR_ENABLED = !!(SONAR_URL && SONAR_TOKEN);
+const sonarSuppressed = new Set(); // Sonar keys marked FALSE-POSITIVE / WONTFIX on the server
 const RUNS = "scanruns";
 const SUMMARY = "securityscanreports";
 
@@ -57,6 +65,7 @@ if (!Number.isFinite(repo_id)) {
   process.exit(1);
 }
 
+const SONAR_PROJECT_KEY = process.env.SONAR_PROJECT_KEY || projectKey;
 const repoName = path.basename(path.resolve(repoPath));
 const outputDir = path.join(__dirname, "scan-output", projectKey);
 fs.mkdirSync(outputDir, { recursive: true });
@@ -162,6 +171,7 @@ const toolOk = {
   semgrep: !!(semgrepData && Array.isArray(semgrepData.results)),
   gitleaks: Array.isArray(gitleaksData),
   trivy: !!(trivyData && Array.isArray(trivyData.Results ?? [])) && trivyData !== null,
+  sonarqube: SONAR_ENABLED ? false : null, // set to true by loadSonar()
 };
 const okTools = new Set(Object.keys(toolOk).filter((t) => toolOk[t]));
 
@@ -231,7 +241,7 @@ function introducing(f) {
   let b = null;
   if (f.tool === "gitleaks") {
     b = f.commit ? { sha: f.commit, all: [f.commit], confidence: "high" } : null;
-  } else if (f.tool === "semgrep") {
+  } else if (f.tool === "semgrep" || f.tool === "sonarqube") {
     b = blame(f.file, f.startLine, f.endLine);
   } else if (f.tool === "trivy") {
     const lines = readLines(f.file, 1, 1e9) || [];
@@ -242,14 +252,14 @@ function introducing(f) {
       if (sha) b = { sha, all: [sha], confidence: "low" };
     }
   }
-  if (!b) return { introducingCommitSha: null, blameConfidence: "none" };
+  if (!b) return { git_commit_hash: null, blameConfidence: "none" };
   const info = commitInfo(b.sha);
   return {
-    introducingCommitSha: b.sha,
+    git_commit_hash: b.sha,
     introducingCommitsAll: b.all,
-    introducingAuthor: info.author,
-    introducingCommitDate: info.date,
-    introducingCommitMessage: info.message,
+    git_author: info.author,
+    git_commit_date: info.date,
+    git_commit_summary: info.message,
     blameConfidence: b.confidence,
   };
 }
@@ -265,7 +275,8 @@ function explainResolved(old) {
   }
 
   let suppressed = false;
-  const re = /nosemgrep|gitleaks:allow|trivy:ignore/;
+  if (old.tool === "sonarqube" && sonarSuppressed.has(old.sonarKey)) suppressed = true;
+  const re = /nosemgrep|gitleaks:allow|trivy:ignore|NOSONAR/;
   if (old.startLine) {
     const near = readLines(old.file, Math.max(1, old.startLine - 1), (old.endLine || old.startLine) + 1);
     if (near && near.some((l) => re.test(l))) suppressed = true;
@@ -283,21 +294,70 @@ function explainResolved(old) {
 }
 
 // ---------------------------------------------------------------------
+// SonarQube loader (API) - same lifecycle as the other tools
+// ---------------------------------------------------------------------
+async function sonarGet(params) {
+  const auth = "Basic " + Buffer.from(SONAR_TOKEN + ":").toString("base64");
+  const issues = [];
+  for (let page = 1; page <= 20; page++) { // SonarQube API hard limit: 10,000 results
+    const qs = new URLSearchParams({ componentKeys: SONAR_PROJECT_KEY, ps: "500", p: String(page), ...params });
+    const res = await fetch(`${SONAR_URL}/api/issues/search?${qs}`, { headers: { Authorization: auth } });
+    if (!res.ok) throw new Error(`SonarQube API ${res.status} ${res.statusText}`);
+    const data = await res.json();
+    issues.push(...data.issues);
+    if (page * 500 >= data.paging.total) return issues;
+  }
+  console.warn("SonarQube: more than 10,000 issues - results truncated. Narrow with SONAR_TYPES.");
+  return issues;
+}
+
+async function loadSonar() {
+  if (!SONAR_ENABLED) {
+    console.log("\n[sonarqube] skipped (set SONAR_URL and SONAR_TOKEN to enable).");
+    return;
+  }
+  try {
+    const extra = {};
+    if (process.env.SONAR_TYPES) extra.types = process.env.SONAR_TYPES; // e.g. VULNERABILITY,SECURITY_HOTSPOT
+    if (process.env.SONAR_BRANCH) extra.branch = process.env.SONAR_BRANCH;
+    const open = await sonarGet({ resolved: "false", ...extra });
+    const dismissed = await sonarGet({ resolved: "true", resolutions: "FALSE-POSITIVE,WONTFIX", ...extra });
+    dismissed.forEach((i) => sonarSuppressed.add(i.key));
+
+    for (const i of open) {
+      allFindings.push({
+        tool: "sonarqube", category: "sast", ruleId: i.rule, severity: i.severity,
+        message: i.message, sonarType: i.type, sonarKey: i.key,
+        file: i.component.replace(`${SONAR_PROJECT_KEY}:`, ""),
+        startLine: i.textRange?.startLine ?? i.line,
+        endLine: i.textRange?.endLine ?? i.line,
+        fingerprint: sha256(`sonarqube|${i.key}`), // Sonar's issue key is already stable
+        raw: i,
+      });
+    }
+    toolOk.sonarqube = true;
+    okTools.add("sonarqube");
+    console.log(`\n[sonarqube] fetched ${open.length} open issues.`);
+  } catch (e) {
+    console.warn(`[sonarqube] FAILED: ${e.message} -> its findings will NOT be resolved.`);
+  }
+}
+
+// ---------------------------------------------------------------------
 // 6. Sync with MongoDB - one collection PER TOOL
 // ---------------------------------------------------------------------
 const COLLECTIONS = {
   semgrep: process.env.MONGO_SEMGREP_COLLECTION || "semgrepfindings",
   gitleaks: process.env.MONGO_GITLEAKS_COLLECTION || "gitleaksfindings",
   trivy: process.env.MONGO_TRIVY_COLLECTION || "trivyfindings",
+  sonarqube: process.env.MONGO_SONAR_COLLECTION || "sonarqubefindings",
 };
-// SonarQube is NOT scanned by this script. Its results stay in your existing
-// SonarQubeReport collection; link them to these rows via projectKey / repo_id.
 
 async function syncTool(db, tool) {
   const col = db.collection(COLLECTIONS[tool]);
   await col.createIndex({ projectKey: 1, branch: 1, fingerprint: 1 }, { unique: true });
   await col.createIndex({ projectKey: 1, status: 1 });
-  await col.createIndex({ introducingCommitSha: 1 });
+  await col.createIndex({ git_commit_hash: 1 });
 
   const counts = { new: 0, reopened: 0, resolved: 0, unchanged: 0 };
   const openFilter = { projectKey, branch, status: { $in: ["open", "reopened"] } };
@@ -374,6 +434,32 @@ async function syncTool(db, tool) {
   return { counts, open: await col.countDocuments(openFilter) };
 }
 
+// Unified collection: every tool's findings side by side, ready for the correlation layer.
+// This script only STORES - it never correlates. Raw scanner output stays in the per-tool
+// collections (see sourceCollection / sourceId); the unified docs hold the normalized fields.
+const UNIFIED = process.env.MONGO_FINDINGS_COLLECTION || "findings";
+
+async function mirrorToFindings(db, tool) {
+  const unified = db.collection(UNIFIED);
+  await unified.createIndex({ projectKey: 1, branch: 1, tool: 1, fingerprint: 1 }, { unique: true });
+  await unified.createIndex({ projectKey: 1, status: 1 });
+  await unified.createIndex({ git_commit_hash: 1 });
+
+  const docs = await db.collection(COLLECTIONS[tool]).find({ projectKey, branch }, { projection: { raw: 0 } }).toArray();
+  // $set (not replace) so fields the correlation layer adds later (e.g. clusterId) survive rescans.
+  const ops = docs.map(({ _id, ...rest }) => ({
+    updateOne: {
+      filter: { projectKey, branch, tool, fingerprint: rest.fingerprint },
+      update: {
+        $set: { ...rest, sourceCollection: COLLECTIONS[tool], sourceId: _id },
+        $setOnInsert: { embeddingStatus: "pending" }, // mongoose defaults don't apply to raw driver writes
+      },
+      upsert: true,
+    },
+  }));
+  if (ops.length) await unified.bulkWrite(ops, { ordered: false });
+}
+
 async function main() {
   const client = new MongoClient(MONGO_URI);
   try {
@@ -382,11 +468,14 @@ async function main() {
     await db.collection(RUNS).createIndex({ projectKey: 1, scannedAt: -1 });
     await db.collection(SUMMARY).createIndex({ projectKey: 1 }, { unique: true });
 
+    await loadSonar();
+
     const byTool = {};
     const openByTool = {};
     const total = { new: 0, reopened: 0, resolved: 0, unchanged: 0 };
     for (const tool of Object.keys(COLLECTIONS)) {
       const r = await syncTool(db, tool);
+      if (toolOk[tool]) await mirrorToFindings(db, tool);
       byTool[tool] = r.counts;
       openByTool[tool] = r.open;
       for (const k of Object.keys(total)) total[k] += r.counts[k];
@@ -408,7 +497,7 @@ async function main() {
           projectKey, accountId, repo_id, branch, repo: repoName, repoPath: path.resolve(repoPath),
           scanId, scannedCommitSha: commitSha, dirty,
           openTotal, openByTool, lastRunCounts: total, lastRunCountsByTool: byTool, toolStatus: toolOk,
-          status: okTools.size === 3 ? "SUCCESS" : "PARTIAL",
+          status: okTools.size === Object.values(toolOk).filter((v) => v !== null).length ? "SUCCESS" : "PARTIAL",
           scannedAt, updatedAt: new Date(),
         },
         $setOnInsert: { createdAt: new Date() },
