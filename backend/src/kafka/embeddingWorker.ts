@@ -67,7 +67,7 @@ export async function startEmbeddingWorker() {
         const payload = JSON.parse(raw) as ProducerMessage & { tool?: string };
 
         // ORIGINAL (prints cloneUrl, which may contain a token):
-        
+           
         // ===== [NEW-3] safe log =====
         console.log(`[key=${key}] tool=${payload.tool} repo_id=${payload.repo_id} commit=${payload.commitSha}`);
         // ===== [END NEW-3] =====
