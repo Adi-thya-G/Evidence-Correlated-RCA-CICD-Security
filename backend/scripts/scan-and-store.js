@@ -1,76 +1,55 @@
 /**
- * scan-and-store.js
+ * scan-and-store.js  (v2)
  *
- * Runs Semgrep, Gitleaks, and Trivy against a given repo path, parses each
- * tool's JSON output, and stores results TWO ways:
+ * Runs Semgrep, Gitleaks, Trivy on a repo and tracks every finding over time:
+ *   - scannedCommitSha      : commit the scan ran against (HEAD)
+ *   - introducingCommitSha  : commit that most likely introduced the finding
+ *   - status                : open | resolved | reopened  (set automatically)
+ *   - fixingCommitSha       : commit that most likely fixed it
+ *   - manualStatus          : YOUR field (false_positive, accepted_risk...) - never touched by this script
  *
- *   1. One summary document per project (upserted by projectKey), same
- *      pattern as SonarQubeReport — good for a dashboard overview. Now
- *      also includes a diff against the PREVIOUS scan (resolved / new /
- *      unchanged counts) so you can confirm a fix actually worked.
- *   2. Three separate collections, one per tool (semgrepfindings,
- *      trivyfindings, gitleaksfindings) — good for filtering, paginating,
- *      and managing findings per tool. Each run replaces that project's
- *      rows with the latest results.
- *
- * Every document is stamped with a scanId + scannedAt so you can always
- * confirm which run the data in the DB belongs to.
+ * Collections:
+ *   findings               one doc per finding for its whole life (never deleted)
+ *   scanruns               one doc per run (history)
+ *   securityscanreports    one summary doc per project (dashboard)
  *
  * Usage:
  *   node scan-and-store.js <repoPath> <accountId> <repo_id> <projectKey> [branch]
  *
- * Example:
- *   node scan-and-store.js /path/to/client-repo 6a967f175f33407337092711 1341658140 158157512_1341658140 main
- *
- * Requirements:
- *   npm install mongodb
- *   semgrep, gitleaks, trivy must be installed and on PATH
- *   MongoDB running locally (or set MONGO_URI env var)
+ * Requirements: npm install mongodb ; semgrep, gitleaks, trivy, git on PATH
  */
 
-const { execSync } = require("child_process");
+const { execSync, execFileSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { MongoClient, ObjectId } = require("mongodb");
 
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017";
-// Point this at the SAME database your SonarQubeReport model uses.
 const DB_NAME = process.env.MONGO_DB_NAME || "evidence-rca";
-const SUMMARY_COLLECTION = process.env.MONGO_SUMMARY_COLLECTION || "securityscanreports";
-const SEMGREP_COLLECTION = process.env.MONGO_SEMGREP_COLLECTION || "semgrepfindings";
-const TRIVY_COLLECTION = process.env.MONGO_TRIVY_COLLECTION || "trivyfindings";
-const GITLEAKS_COLLECTION = process.env.MONGO_GITLEAKS_COLLECTION || "gitleaksfindings";
+const FINDINGS = "findings";
+const RUNS = "scanruns";
+const SUMMARY = "securityscanreports";
 
 // ---------------------------------------------------------------------
-// 0. Parse + validate arguments
+// 0. Args
 // ---------------------------------------------------------------------
 const [repoPath, accountIdArg, repoIdArg, projectKey, branchArg] = process.argv.slice(2);
 const branch = branchArg || "main";
 
 if (!repoPath || !accountIdArg || !repoIdArg || !projectKey) {
-  console.error(
-    "Usage: node scan-and-store.js <repoPath> <accountId> <repo_id> <projectKey> [branch]",
-  );
-  console.error("  repoPath   - path to the repo to scan");
-  console.error("  accountId  - Mongo ObjectId of the user/account (matches SonarQubeReport.accountId)");
-  console.error("  repo_id    - GitHub repository id (matches SonarQubeReport.repo_id)");
-  console.error("  projectKey - matches SonarQubeReport.projectKey, e.g. '158157512_1341658140'");
-  console.error("  branch     - optional, defaults to 'main'");
+  console.error("Usage: node scan-and-store.js <repoPath> <accountId> <repo_id> <projectKey> [branch]");
   process.exit(1);
 }
-
 if (!fs.existsSync(repoPath) || !fs.statSync(repoPath).isDirectory()) {
-  console.error(`repoPath does not exist or is not a directory: ${repoPath}`);
+  console.error(`repoPath is not a directory: ${repoPath}`);
   process.exit(1);
 }
-
 if (!ObjectId.isValid(accountIdArg)) {
-  console.error(`accountId is not a valid Mongo ObjectId: ${accountIdArg}`);
+  console.error(`accountId is not a valid ObjectId: ${accountIdArg}`);
   process.exit(1);
 }
 const accountId = new ObjectId(accountIdArg);
-
 const repo_id = Number(repoIdArg);
 if (!Number.isFinite(repo_id)) {
   console.error(`repo_id must be numeric: ${repoIdArg}`);
@@ -81,292 +60,354 @@ const repoName = path.basename(path.resolve(repoPath));
 const outputDir = path.join(__dirname, "scan-output", projectKey);
 fs.mkdirSync(outputDir, { recursive: true });
 
-const semgrepOut = path.join(outputDir, "semgrep-results.json");
-const gitleaksOut = path.join(outputDir, "gitleaks-results.json");
-const trivyOut = path.join(outputDir, "trivy-results.json");
-
-// Unique id for THIS run — every doc written this run carries it, so you
-// can always confirm "yes, this row is from my latest scan."
 const scanId = `${projectKey}_${Date.now()}`;
 const scannedAt = new Date();
 
-function runTool(name, command) {
-  console.log(`\n[${name}] Running: ${command}`);
-  try {
-    execSync(command, { cwd: repoPath, stdio: "inherit" });
-  } catch (err) {
-    // Semgrep/Gitleaks/Trivy exit non-zero when findings exist — that's expected,
-    // not a real failure. Only warn if the output file wasn't actually created.
-    console.warn(`[${name}] exited non-zero (likely because findings were found) — continuing.`);
-  }
+// ---------------------------------------------------------------------
+// 1. Git helpers
+// ---------------------------------------------------------------------
+const git = (...args) =>
+  execFileSync("git", args, { cwd: repoPath, encoding: "utf-8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "ignore"] }).trim();
+const tryGit = (...args) => {
+  try { return git(...args); } catch { return ""; }
+};
+
+let commitSha;
+try {
+  commitSha = git("rev-parse", "HEAD");
+} catch {
+  console.error("repoPath is not a git repository (or has no commits).");
+  process.exit(1);
+}
+const dirty = tryGit("status", "--porcelain") !== "";
+const currentBranch = tryGit("rev-parse", "--abbrev-ref", "HEAD");
+if (dirty) console.warn("WARNING: working tree is dirty - commit SHA does not fully describe what was scanned.");
+if (currentBranch && currentBranch !== "HEAD" && currentBranch !== branch) {
+  console.warn(`WARNING: checked-out branch is '${currentBranch}' but you passed '${branch}'.`);
 }
 
-function readJsonSafe(filePath) {
+const infoCache = new Map();
+function commitInfo(sha) {
+  if (!sha) return {};
+  if (!infoCache.has(sha)) {
+    const [author, date, message] = tryGit("show", "-s", "--format=%an%x1f%aI%x1f%s", sha).split("\x1f");
+    infoCache.set(sha, { sha, author, date, message });
+  }
+  return infoCache.get(sha);
+}
+
+// Blame a line range; returns the most recent commit + all commits seen.
+function blame(file, start, end) {
+  if (!file || !start) return null;
+  const out = tryGit("blame", "-w", "-M", "-C", "--porcelain", "-L", `${start},${end || start}`, "--", file);
+  if (!out) return null;
+  const commits = {};
+  let cur;
+  for (const line of out.split("\n")) {
+    const m = line.match(/^([0-9a-f]{40}) /);
+    if (m) { cur = m[1]; commits[cur] = commits[cur] || { time: 0 }; }
+    else if (line.startsWith("committer-time ")) commits[cur].time = Number(line.slice(15));
+  }
+  const shas = Object.keys(commits)
+    .filter((s) => !/^0+$/.test(s)) // ignore uncommitted lines
+    .sort((a, b) => commits[b].time - commits[a].time);
+  if (!shas.length) return null;
+  return { sha: shas[0], all: shas, confidence: shas.length === 1 ? "high" : "medium" };
+}
+
+function readLines(file, start, end) {
   try {
-    const raw = fs.readFileSync(filePath, "utf-8");
-    return JSON.parse(raw);
-  } catch (err) {
-    console.warn(`Could not read/parse ${filePath}:`, err.message);
+    const lines = fs.readFileSync(path.join(repoPath, file), "utf-8").split("\n");
+    return lines.slice(Math.max(0, start - 1), end || start);
+  } catch {
     return null;
   }
 }
 
-// ---------------------------------------------------------------------
-// 1. Run each scanner
-// ---------------------------------------------------------------------
-runTool("Semgrep", `semgrep --config auto --config "p/security-audit" --json --output "${semgrepOut}" .`);
-runTool("Gitleaks", `gitleaks detect --source . --report-format json --report-path "${gitleaksOut}" --no-git -v`);
-runTool("Trivy", `trivy fs --format json --output "${trivyOut}" .`);
+const sha256 = (s) => crypto.createHash("sha256").update(s).digest("hex");
 
 // ---------------------------------------------------------------------
-// 2. Parse + normalize each tool's output into a common shape
+// 2. Run scanners (stale output deleted first; success tracked per tool)
+// ---------------------------------------------------------------------
+const outFile = (n) => path.join(outputDir, `${n}-results.json`);
+
+function runTool(name, command) {
+  try { fs.unlinkSync(outFile(name)); } catch {}
+  console.log(`\n[${name}] ${command}`);
+  try {
+    execSync(command, { cwd: repoPath, stdio: "inherit" });
+  } catch {
+    console.warn(`[${name}] exited non-zero (usually means findings were found).`);
+  }
+  try {
+    return JSON.parse(fs.readFileSync(outFile(name), "utf-8"));
+  } catch (e) {
+    console.warn(`[${name}] no usable output -> marked FAILED (its findings will NOT be resolved).`);
+    return null;
+  }
+}
+
+const version = (cmd) => {
+  try { return execSync(cmd, { cwd: repoPath, encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] }).split("\n")[0].trim(); }
+  catch { return null; }
+};
+
+const semgrepData = runTool("semgrep", `semgrep --config auto --config "p/security-audit" --json --output "${outFile("semgrep")}" .`);
+// No --no-git: Gitleaks scans history and reports commit/author/date.
+const gitleaksData = runTool("gitleaks", `gitleaks detect --source . --report-format json --report-path "${outFile("gitleaks")}" -v`);
+const trivyData = runTool("trivy", `trivy fs --format json --output "${outFile("trivy")}" .`);
+
+const toolOk = {
+  semgrep: !!(semgrepData && Array.isArray(semgrepData.results)),
+  gitleaks: Array.isArray(gitleaksData),
+  trivy: !!(trivyData && Array.isArray(trivyData.Results ?? [])) && trivyData !== null,
+};
+const okTools = new Set(Object.keys(toolOk).filter((t) => toolOk[t]));
+
+// ---------------------------------------------------------------------
+// 3. Normalize + stable fingerprints (no line numbers -> survives code shifts)
 // ---------------------------------------------------------------------
 function normalizeSemgrep(data) {
-  if (!data || !data.results) return [];
-  return data.results.map((r) => ({
-    tool: "semgrep",
-    category: "sast",
-    ruleId: r.check_id,
-    severity: r.extra?.severity || "UNKNOWN",
-    message: r.extra?.message || "",
-    file: r.path,
-    startLine: r.start?.line,
-    endLine: r.end?.line,
-    raw: r,
-  }));
+  if (!data?.results) return [];
+  return data.results.map((r) => {
+    const code = (readLines(r.path, r.start?.line, r.end?.line) || []).join("\n").replace(/\s+/g, " ").trim();
+    return {
+      tool: "semgrep", category: "sast", ruleId: r.check_id,
+      severity: r.extra?.severity || "UNKNOWN", message: r.extra?.message || "",
+      file: r.path, startLine: r.start?.line, endLine: r.end?.line,
+      base: ["semgrep", r.check_id, r.path, sha256(code)].join("|"), raw: r,
+    };
+  });
 }
 
 function normalizeGitleaks(data) {
   if (!Array.isArray(data)) return [];
   return data.map((r) => ({
-    tool: "gitleaks",
-    category: "secret",
-    ruleId: r.RuleID,
-    severity: "HIGH", // secrets are treated as high severity by default
-    message: r.Description,
-    file: r.File,
-    startLine: r.StartLine,
-    endLine: r.EndLine,
-    commit: r.Commit,
-    author: r.Author,
-    raw: r,
+    tool: "gitleaks", category: "secret", ruleId: r.RuleID, severity: "HIGH",
+    message: r.Description, file: r.File, startLine: r.StartLine, endLine: r.EndLine,
+    commit: r.Commit, author: r.Author, commitDate: r.Date, commitMessage: r.Message,
+    base: r.Fingerprint || ["gitleaks", r.RuleID, r.File, r.Commit, sha256(r.Secret || "")].join("|"),
+    raw: { ...r, Secret: undefined, Match: undefined }, // don't store the actual secret
   }));
 }
 
 function normalizeTrivy(data) {
-  if (!data || !data.Results) return [];
-  const findings = [];
-  for (const result of data.Results) {
-    for (const vuln of result.Vulnerabilities || []) {
-      findings.push({
-        tool: "trivy",
-        category: "sca",
-        ruleId: vuln.VulnerabilityID,
-        severity: vuln.Severity,
-        message: vuln.Title || vuln.Description,
-        file: result.Target,
-        pkgName: vuln.PkgName,
-        installedVersion: vuln.InstalledVersion,
-        fixedVersion: vuln.FixedVersion,
-        raw: vuln,
+  if (!data?.Results) return [];
+  const out = [];
+  for (const res of data.Results) {
+    for (const v of res.Vulnerabilities || []) {
+      out.push({
+        tool: "trivy", category: "sca", ruleId: v.VulnerabilityID, severity: v.Severity,
+        message: v.Title || v.Description, file: res.Target,
+        pkgName: v.PkgName, installedVersion: v.InstalledVersion, fixedVersion: v.FixedVersion,
+        base: ["trivy", v.VulnerabilityID, res.Target, v.PkgName].join("|"), raw: v,
       });
     }
   }
-  return findings;
+  return out;
 }
 
-const semgrepFindings = normalizeSemgrep(readJsonSafe(semgrepOut));
-const gitleaksFindings = normalizeGitleaks(readJsonSafe(gitleaksOut));
-const trivyFindings = normalizeTrivy(readJsonSafe(trivyOut));
-const allFindings = [...semgrepFindings, ...gitleaksFindings, ...trivyFindings];
+const allFindings = [
+  ...(toolOk.semgrep ? normalizeSemgrep(semgrepData) : []),
+  ...(toolOk.gitleaks ? normalizeGitleaks(gitleaksData) : []),
+  ...(toolOk.trivy ? normalizeTrivy(trivyData) : []),
+];
 
-console.log(
-  `\nParsed findings — Semgrep: ${semgrepFindings.length}, Gitleaks: ${gitleaksFindings.length}, Trivy: ${trivyFindings.length}`,
-);
-console.log(`Total: ${allFindings.length} findings (scanId=${scanId})`);
+// Same rule + same code twice in one file -> add #n so fingerprints stay unique.
+const seen = new Map();
+for (const f of allFindings) {
+  const n = (seen.get(f.base) || 0) + 1;
+  seen.set(f.base, n);
+  f.fingerprint = sha256(`${f.base}#${n}`);
+  delete f.base;
+}
+console.log(`\nParsed ${allFindings.length} findings (scanId=${scanId}, commit=${commitSha.slice(0, 8)})`);
 
-function withLinkFields(f) {
+// ---------------------------------------------------------------------
+// 4. Introducing commit (only computed once, when a finding is first seen)
+// ---------------------------------------------------------------------
+function introducing(f) {
+  let b = null;
+  if (f.tool === "gitleaks") {
+    b = f.commit ? { sha: f.commit, all: [f.commit], confidence: "high" } : null;
+  } else if (f.tool === "semgrep") {
+    b = blame(f.file, f.startLine, f.endLine);
+  } else if (f.tool === "trivy") {
+    const lines = readLines(f.file, 1, 1e9) || [];
+    const i = lines.findIndex((l) => l.includes(f.pkgName));
+    b = i >= 0 ? blame(f.file, i + 1, i + 1) : null;
+    if (!b) {
+      const sha = tryGit("log", "-1", "--format=%H", "--", f.file);
+      if (sha) b = { sha, all: [sha], confidence: "low" };
+    }
+  }
+  if (!b) return { introducingCommitSha: null, blameConfidence: "none" };
+  const info = commitInfo(b.sha);
   return {
-    ...f,
-    findingHash: findingKey(f),
-    accountId,
-    repo_id,
-    projectKey,
-    branch,
-    repo: repoName,
-    scanId,
-    scannedAt,
+    introducingCommitSha: b.sha,
+    introducingCommitsAll: b.all,
+    introducingAuthor: info.author,
+    introducingCommitDate: info.date,
+    introducingCommitMessage: info.message,
+    blameConfidence: b.confidence,
   };
 }
 
-const semgrepDocs = semgrepFindings.map(withLinkFields);
-const gitleaksDocs = gitleaksFindings.map(withLinkFields);
-const trivyDocs = trivyFindings.map(withLinkFields);
-
 // ---------------------------------------------------------------------
-// 3. Diff helper — a stable key per finding so we can tell what's new,
-//    what's resolved (was there before, gone now — i.e. your fix worked),
-//    and what's unchanged, when comparing against the previous scan.
+// 5. Why did a finding disappear?
 // ---------------------------------------------------------------------
-
-// hash function 
-function findingKey(f) {
-  const parts =
-    f.tool === "trivy"
-      ? [f.tool, f.ruleId, f.file, f.pkgName ?? ""]
-      : [f.tool, f.ruleId, f.file, String(f.startLine ?? "")];
-  return crypto.createHash("sha256").update(parts.join("|")).digest("hex");
-}
-
-function diffFindings(previousDocs, currentDocs) {
-  const prevKeys = new Set(previousDocs.map(findingKey));
-  const currKeys = new Set(currentDocs.map(findingKey));
-
-  let resolvedCount = 0; // was present before, gone now
-  for (const k of prevKeys) {
-    if (!currKeys.has(k)) resolvedCount++;
+function explainResolved(old) {
+  const exists = fs.existsSync(path.join(repoPath, old.file));
+  let fixingSha = null;
+  if (old.lastSeenCommitSha && old.lastSeenCommitSha !== commitSha) {
+    fixingSha = tryGit("log", "-1", "--format=%H", `${old.lastSeenCommitSha}..HEAD`, "--", old.file) || null;
   }
 
-  let newCount = 0; // wasn't present before, present now
-  for (const k of currKeys) {
-    if (!prevKeys.has(k)) newCount++;
+  let suppressed = false;
+  const re = /nosemgrep|gitleaks:allow|trivy:ignore/;
+  if (old.startLine) {
+    const near = readLines(old.file, Math.max(1, old.startLine - 1), (old.endLine || old.startLine) + 1);
+    if (near && near.some((l) => re.test(l))) suppressed = true;
   }
+  try {
+    if (fs.readFileSync(path.join(repoPath, ".gitleaksignore"), "utf-8").includes(old.fingerprint)) suppressed = true;
+  } catch {}
 
-  const unchangedCount = currKeys.size - newCount;
-
-  return { previousTotal: previousDocs.length, currentTotal: currentDocs.length, resolvedCount, newCount, unchangedCount };
+  let reason = "unknown";
+  if (!exists) reason = "file_deleted";
+  else if (suppressed) reason = "suppressed";
+  else if (old.tool === "trivy") reason = "dependency_upgraded";
+  else if (fixingSha) reason = "code_changed";
+  return { reason, fixingSha };
 }
 
 // ---------------------------------------------------------------------
-// 4. Save: per-tool collections (with diff against previous scan) +
-//    summary doc (SonarQube-style)
+// 6. Sync with MongoDB
 // ---------------------------------------------------------------------
-async function replaceToolFindings(db, collectionName, newDocs) {
-  const collection = db.collection(collectionName);
-  await collection.createIndex({ projectKey: 1 });
-  await collection.createIndex({ accountId: 1 });
-  await collection.createIndex({ repo_id: 1 });
-  await collection.createIndex({ severity: 1 });
-  await collection.createIndex({ scanId: 1 });
-
-  // Grab the previous scan's docs for this project BEFORE wiping them,
-  // so we can diff old vs new.
-  const previousDocs = await collection.find({ projectKey }).toArray();
-  const diff = diffFindings(previousDocs, newDocs);
-
-  await collection.deleteMany({ projectKey });
-  if (newDocs.length > 0) {
-    await collection.insertMany(newDocs);
-  }
-
-  return diff;
-}
-
-async function saveToMongo() {
+async function main() {
   const client = new MongoClient(MONGO_URI);
   try {
     await client.connect();
     const db = client.db(DB_NAME);
+    const col = db.collection(FINDINGS);
 
-    const [semgrepDiff, gitleaksDiff, trivyDiff] = await Promise.all([
-      replaceToolFindings(db, SEMGREP_COLLECTION, semgrepDocs),
-      replaceToolFindings(db, GITLEAKS_COLLECTION, gitleaksDocs),
-      replaceToolFindings(db, TRIVY_COLLECTION, trivyDocs),
-    ]);
+    await col.createIndex({ projectKey: 1, branch: 1, fingerprint: 1 }, { unique: true });
+    await col.createIndex({ projectKey: 1, status: 1 });
+    await col.createIndex({ introducingCommitSha: 1 });
+    await db.collection(RUNS).createIndex({ projectKey: 1, scannedAt: -1 });
+    await db.collection(SUMMARY).createIndex({ projectKey: 1 }, { unique: true });
 
-    console.log("\n--- Diff vs previous scan ---");
-    for (const [name, diff] of [
-      ["semgrep", semgrepDiff],
-      ["gitleaks", gitleaksDiff],
-      ["trivy", trivyDiff],
-    ]) {
-      console.log(
-        `${name}: ${diff.previousTotal} -> ${diff.currentTotal}  (resolved: ${diff.resolvedCount}, new: ${diff.newCount}, unchanged: ${diff.unchangedCount})`,
-      );
+    const existing = await col.find({ projectKey, branch }).toArray();
+    const byFp = new Map(existing.map((d) => [d.fingerprint, d]));
+    const currentFps = new Set(allFindings.map((f) => f.fingerprint));
+    const counts = { new: 0, reopened: 0, resolved: 0, unchanged: 0 };
+    const ops = [];
+
+    for (const f of allFindings) {
+      const old = byFp.get(f.fingerprint);
+      const common = {
+        ...f,
+        accountId, repo_id, repo: repoName, projectKey, branch,
+        lastSeenScanId: scanId, lastSeenCommitSha: commitSha, lastSeenAt: scannedAt, updatedAt: new Date(),
+      };
+
+      if (!old) {
+        counts.new++;
+        ops.push({
+          insertOne: {
+            document: {
+              ...common, ...introducing(f),
+              status: "open", reopenCount: 0,
+              firstSeenScanId: scanId, firstSeenCommitSha: commitSha, firstSeenAt: scannedAt,
+              createdAt: new Date(),
+            },
+          },
+        });
+      } else if (old.status === "resolved") {
+        counts.reopened++;
+        ops.push({
+          updateOne: {
+            filter: { _id: old._id },
+            update: {
+              $set: {
+                ...common, status: "reopened",
+                resolvedScanId: null, resolvedAt: null, resolvedAtCommitSha: null,
+                fixingCommitSha: null, resolvedReason: null,
+              },
+              $inc: { reopenCount: 1 },
+            },
+          },
+        });
+      } else {
+        counts.unchanged++;
+        ops.push({ updateOne: { filter: { _id: old._id }, update: { $set: common } } });
+      }
     }
 
-    const totalResolved = semgrepDiff.resolvedCount + gitleaksDiff.resolvedCount + trivyDiff.resolvedCount;
-    const totalNew = semgrepDiff.newCount + gitleaksDiff.newCount + trivyDiff.newCount;
-    const previousTotal = semgrepDiff.previousTotal + gitleaksDiff.previousTotal + trivyDiff.previousTotal;
+    // Anything open before, missing now, and whose tool actually succeeded -> resolved.
+    for (const old of existing) {
+      if (old.status === "resolved" || currentFps.has(old.fingerprint) || !okTools.has(old.tool)) continue;
+      const { reason, fixingSha } = explainResolved(old);
+      counts.resolved++;
+      ops.push({
+        updateOne: {
+          filter: { _id: old._id },
+          update: {
+            $set: {
+              status: "resolved", resolvedScanId: scanId, resolvedAt: scannedAt,
+              resolvedAtCommitSha: commitSha, fixingCommitSha: fixingSha, resolvedReason: reason,
+              updatedAt: new Date(),
+            },
+          },
+        },
+      });
+    }
 
-    // Summary doc — same upsert-by-projectKey pattern as SonarQubeReport,
-    // now with scanId + diff so you can confirm this is fresh data and
-    // see exactly what changed since the last run.
-    const summaryCollection = db.collection(SUMMARY_COLLECTION);
-    await summaryCollection.createIndex({ projectKey: 1 }, { unique: true });
-    await summaryCollection.createIndex({ accountId: 1 });
-    await summaryCollection.createIndex({ repo_id: 1 });
-    await summaryCollection.createIndex({ scanId: 1 });
+    if (ops.length) await col.bulkWrite(ops, { ordered: false });
 
-    // Capture the previous scanId (if any) before we overwrite it.
-    const previousSummary = await summaryCollection.findOne({ projectKey });
+    const open = await col
+      .aggregate([
+        { $match: { projectKey, branch, status: { $in: ["open", "reopened"] } } },
+        { $group: { _id: "$tool", n: { $sum: 1 } } },
+      ])
+      .toArray();
+    const openByTool = Object.fromEntries(open.map((o) => [o._id, o.n]));
+    const openTotal = open.reduce((s, o) => s + o.n, 0);
 
-    await summaryCollection.findOneAndUpdate(
+    // Run history
+    await db.collection(RUNS).insertOne({
+      scanId, projectKey, branch, accountId, repo_id,
+      commitSha, dirty, scannedAt,
+      toolStatus: toolOk,
+      toolVersions: { semgrep: version("semgrep --version"), gitleaks: version("gitleaks version"), trivy: version("trivy --version") },
+      counts, openTotal, openByTool,
+    });
+
+    // Dashboard summary (latest run)
+    await db.collection(SUMMARY).updateOne(
       { projectKey },
       {
         $set: {
-          projectKey,
-          accountId,
-          repo_id,
-          branch,
-          repo: repoName,
-          repoPath: path.resolve(repoPath),
-          scanId,
-          previousScanId: previousSummary?.scanId ?? null,
-          totalFindings: allFindings.length,
-          previousTotalFindings: previousTotal,
-          findingsByTool: {
-            semgrep: semgrepDocs.length,
-            gitleaks: gitleaksDocs.length,
-            trivy: trivyDocs.length,
-          },
-          diffVsPreviousScan: {
-            resolved: totalResolved,
-            new: totalNew,
-            byTool: { semgrep: semgrepDiff, gitleaks: gitleaksDiff, trivy: trivyDiff },
-          },
-          status: "SUCCESS",
-          scannedAt,
-          updatedAt: new Date(),
+          projectKey, accountId, repo_id, branch, repo: repoName, repoPath: path.resolve(repoPath),
+          scanId, scannedCommitSha: commitSha, dirty,
+          openTotal, openByTool, lastRunCounts: counts, toolStatus: toolOk,
+          status: okTools.size === 3 ? "SUCCESS" : "PARTIAL",
+          scannedAt, updatedAt: new Date(),
         },
         $setOnInsert: { createdAt: new Date() },
       },
       { upsert: true },
     );
 
-    console.log(`\nUpserted summary report for projectKey=${projectKey} (scanId=${scanId}) into ${DB_NAME}.${SUMMARY_COLLECTION}`);
-    console.log(`Overall: ${previousTotal} -> ${allFindings.length}  (resolved: ${totalResolved}, new: ${totalNew})`);
-  } catch (err) {
-    try {
-      const db = client.db(DB_NAME);
-      await db.collection(SUMMARY_COLLECTION).updateOne(
-        { projectKey },
-        {
-          $set: {
-            projectKey,
-            accountId,
-            repo_id,
-            branch,
-            scanId,
-            status: "FAILED",
-            error: err.message,
-            scannedAt,
-            updatedAt: new Date(),
-          },
-          $setOnInsert: { createdAt: new Date() },
-        },
-        { upsert: true },
-      );
-    } catch (_) {
-      // best-effort only
-    }
-    throw err;
+    console.log("\n--- Result ---");
+    console.log(`new: ${counts.new}, reopened: ${counts.reopened}, resolved: ${counts.resolved}, unchanged: ${counts.unchanged}`);
+    console.log(`open now: ${openTotal}`, openByTool);
   } finally {
     await client.close();
   }
 }
 
-saveToMongo()
+main()
   .then(() => console.log("Done."))
   .catch((err) => {
     console.error("MongoDB save failed:", err);

@@ -122,8 +122,7 @@ export const webHookHandler = asyncHandler(async (req, res) => {
       repo_id: repoId,
       projectKey: key,
       branch: payload.repository.branch ?? branch,
-      scriptPath:
-        "D:/Evidence-Correlated-RCA-CICD-Security/backend/scripts/scan-and-store.js",
+      scriptPath:"D:/Evidence-Correlated-RCA-CICD-Security/backend/scripts/scan-and-store.js",
     });
   } else if (event === "installation_repositories") {
     const githubId = payload.installation.account.id;
