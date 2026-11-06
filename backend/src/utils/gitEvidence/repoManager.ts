@@ -34,11 +34,17 @@ export async function ensureRepoCheckedOut(
   cloneUrl: string,
   commitSha: string
 ): Promise<SimpleGit> {
+  // get repo path from local storage (data/installations/{installationId}/{repoId}/repo)
   const repoPath = getRepoPath(installationId, repoId);
+  // lock the repo path to prevent concurrent access to the same repo by multiple workers
   const lock = getRepoLock(`${installationId}:${repoId}`);
+  
+  console.info(`[repoManager] ensureRepoCheckedOut: installationId=${installationId}, repoId=${repoId}, commitSha=${commitSha}, repoPath=${repoPath}`);
 
   return lock.runExclusive(async () => {
     console.log(`[repoManager] repoPath=${repoPath}`);
+
+    // check if the repo path exists and has a .git directory
     const hasGitDir = await pathExists(path.join(repoPath, '.git'));
 
     if (!hasGitDir) {
@@ -56,6 +62,7 @@ export async function ensureRepoCheckedOut(
     await ensureFullHistory(repoGit);
     if (hasGitDir) await repoGit.fetch(['--all']);
     await repoGit.checkout(['--force', '--detach', commitSha]);
+    // 
     return repoGit;
   });
 }

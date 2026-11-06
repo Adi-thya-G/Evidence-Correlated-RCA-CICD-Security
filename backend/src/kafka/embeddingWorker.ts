@@ -100,6 +100,8 @@ export async function startEmbeddingWorker() {
           commitSha,
         })) as NormalizedFinding[];
 
+
+        // is sonarIssues empty? If so, we still want to mark findings as resolved, because the commit may have fixed all issues.
         if (sonarIssues.length === 0) {
           console.log(`[key=${key}] No matched SonarQube issues for commit=${commitSha}`);
           // ===== [NEW-4] still resolve findings when a commit fixes everything =====

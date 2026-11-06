@@ -290,23 +290,25 @@ export const sonarQubeWebHookHandler = asyncHandler(async (req, res, next) => {
 
       console.log(`[sonarqube-webhook] Sending raw-findings message for accountId=${accountId} repo_id=${report.repo_id} commitSha=${commitSha} cloneUrl=${security?.repoPath} installationId=${security?.repoPath?.split("\\")[4]}` ,"inside the if commitSha block")
 
-      producer.send({
-        topic: "raw-findings",
-        messages: [
-          {
-            key: `${report.repo_id}:${report.accountId}`,
-            value: JSON.stringify({
-              accountId: report.accountId,
-              repo_id: report.repo_id,
-              commitSha,
-              cloneUrl: security?.repoPath,
-              installationId: security?.repoPath?.split("\\")[4],
-            }),
-          },
-        ],
-      });
+      // this under experiment, 
+      /****************************************************** */
+      // producer.send({
+      //   topic: "raw-findings",
+      //   messages: [
+      //     {
+      //       key: `${report.repo_id}:${report.accountId}`,
+      //       value: JSON.stringify({
+      //         accountId: report.accountId,
+      //         repo_id: report.repo_id,
+      //         commitSha,
+      //         cloneUrl: security?.repoPath,
+      //         installationId: security?.repoPath?.split("\\")[4],
+      //       }),
+      //     },
+      //   ],
+      // });
 
-     
+         /****************************************************** */
     }
   }
 });
